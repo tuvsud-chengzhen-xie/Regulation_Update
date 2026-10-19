@@ -1,0 +1,357 @@
+/*
+ * TÜV SÜD CPS — App Shell
+ * ──────────────────────────────────────────────────────────────────
+ * Corporate-identity layer for every CPS Center of Excellence app.
+ * Shipped as a self-contained, drop-in stylesheet so a new project
+ * can put one <link rel="stylesheet" href="/ds/shell.css"> and pick
+ * up the topbar, nav, side-rail layout system, and the gamification
+ * Savings chip without copy-pasting.
+ *
+ * Contents:
+ *   §1. Topbar  — gradient + sphere highlight + brand block with "by ..." sub-line
+ *   §2. Top nav — primary + Setup + optional Savings chip
+ *   §3. Savings — flying-octagon celebration + counter-bump
+ *   §4. Page    — default wide / 2-column / narrow centred
+ *   §5. Side rail card vocabulary (.rail-card, .rail-card-eyebrow, …)
+ *   §6. Page chrome — .page-head, .breadcrumb, .footer, .spacer
+ *
+ * Depends on tokens.css for colours, spacing, typography. Load order:
+ *   1. tokens.css   (variables)
+ *   2. shell.css    (this file — corporate-identity components)
+ *   3. <your-app>/style.css  (app-specific overrides + module styles)
+ */
+
+
+/* ═══════════════════════════════════════════════════════════════════
+ * §1. Topbar
+ *
+ * The signature TÜV SÜD blue gradient header. Sticky-positioned at
+ * `top: 0` so it stays in view; everything else that sticks to the
+ * viewport should use `top: var(--sticky-top-offset)` so it stops
+ * below the topbar instead of disappearing behind it.
+ *
+ * Visual layering:
+ *   - linear gradient (left dark → right light TÜV blues)
+ *   - radial sphere highlight at top-centre for a soft 3D shine
+ *   - bottom inset shine for the "glass" edge
+ * ─────────────────────────────────────────────────────────────────── */
+.topbar {
+    background:
+        radial-gradient(ellipse 60% 100% at 50% 0%,
+                        rgba(255, 255, 255, 0.14) 0%,
+                        rgba(255, 255, 255, 0)   60%),
+        linear-gradient(90deg,
+                        var(--tuv-blue-900)  0%,
+                        var(--tuv-blue-700) 50%,
+                        var(--tuv-blue-600) 100%);
+    box-shadow:
+        0 2px 12px rgba(0, 30, 60, 0.25),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.10);
+    position: sticky; top: 0; z-index: 10;
+    color: var(--white);
+}
+.topbar-inner {
+    max-width: var(--page-max-width);
+    margin: 0 auto;
+    padding: var(--space-3) var(--space-5);
+    display: flex; align-items: center; gap: var(--space-5);
+}
+
+/* Brand block — logo + two-line title/sub. The "by ..." sub-line is a
+ * corporate-identity element: it ties every CPS app back to the team. */
+.brand {
+    display: inline-flex; align-items: center; gap: var(--space-3);
+    color: var(--white); font-weight: var(--font-weight-bold);
+    text-decoration: none;
+}
+.brand:hover { text-decoration: none; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.brand-title {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    color: var(--white);
+    letter-spacing: 0.01em;
+}
+.brand-sub {
+    font-size: var(--font-size-xs);
+    color: rgba(255, 255, 255, 0.72);
+    font-weight: var(--font-weight-normal);
+    margin-top: 2px;
+    letter-spacing: 0.04em;
+}
+.brand-logo {
+    height: 44px;
+    width: auto;
+    display: block;
+    /* Faint drop-shadow so the logo doesn't fight the gradient. */
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+ * §2. Top nav
+ *
+ * Primary nav links sit in `.topnav`. A "Setup" link (or any other
+ * always-right action) goes in `.topnav-setup`. The spacer between
+ * them pushes Setup to the far right.
+ * ─────────────────────────────────────────────────────────────────── */
+.topnav { display: flex; gap: var(--space-2); margin-left: var(--space-5); }
+.topnav a {
+    color: rgba(255, 255, 255, 0.82);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-weight: var(--font-weight-medium);
+    transition: background var(--duration-fast) var(--ease-out),
+                color var(--duration-fast);
+}
+.topnav a:hover {
+    background: rgba(255, 255, 255, 0.10);
+    color: var(--white);
+    text-decoration: none;
+}
+.topnav a.is-active {
+    background: rgba(255, 255, 255, 0.18);
+    color: var(--white);
+    box-shadow: inset 0 -2px 0 var(--white);
+}
+
+.topnav-setup {
+    color: rgba(255, 255, 255, 0.85);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-weight: var(--font-weight-medium);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.05);
+}
+.topnav-setup:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--white);
+    text-decoration: none;
+}
+.topnav-setup.is-active {
+    background: rgba(255, 255, 255, 0.20);
+    color: var(--white);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+ * §3. Savings chip + flying-octagon celebration  (optional)
+ *
+ * A gamification element: a small green pill in the nav that shows a
+ * cumulative count (km saved, hours reclaimed, $ recovered — whatever
+ * the app tracks). When a saving action is committed, green octagons
+ * fly from the click target up to the chip — TikTok-heart style —
+ * and the chip's number ticks up with a brief pulse glow.
+ *
+ * Markup:
+ *   <a id="savings-counter" data-value="42"
+ *      class="topnav-savings" title="…">
+ *       <svg class="savings-octagon" viewBox="0 0 100 100">
+ *         <polygon points="30,5 70,5 95,30 95,70 70,95 30,95 5,70 5,30"
+ *                  fill="currentColor"/>
+ *       </svg>
+ *       <span class="savings-value">~42 km</span>
+ *       <span class="savings-label">saved</span>
+ *   </a>
+ *
+ * To trigger: load shell.js and add `data-savings-km="N"` to any form.
+ * ─────────────────────────────────────────────────────────────────── */
+.topnav-savings {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    margin-right: var(--space-2);
+    background: rgba(34, 197, 94, 0.22);
+    border: 1px solid rgba(74, 222, 128, 0.55);
+    border-radius: var(--radius-full);
+    color: #d6fbe2;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+    transition:
+        transform var(--duration-normal) var(--ease-out),
+        box-shadow var(--duration-normal) var(--ease-out),
+        background var(--duration-normal) var(--ease-out);
+}
+.topnav-savings:hover {
+    background: rgba(34, 197, 94, 0.35);
+    color: var(--white);
+    text-decoration: none;
+}
+.savings-octagon {
+    width: 16px; height: 16px;
+    color: #4ade80;
+    filter: drop-shadow(0 0 4px rgba(74, 222, 128, 0.5));
+    flex-shrink: 0;
+}
+.savings-value {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+}
+.savings-label {
+    opacity: 0.72;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+@keyframes counter-bump {
+    0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+    35%  { transform: scale(1.22); box-shadow: 0 0 28px 6px rgba(74, 222, 128, 0.65); }
+    100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+}
+.topnav-savings.counter-bump { animation: counter-bump 0.7s ease-out; }
+
+/* Flying-octagon particles — spawned by shell.js */
+.flying-octagon {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    color: var(--success-600);
+    opacity: 0;
+    will-change: transform, opacity;
+    animation: octagon-fly 1.85s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.18));
+}
+@keyframes octagon-fly {
+    0%   { opacity: 0; transform: translate(0, 0) scale(0.4) rotate(0deg); }
+    12%  { opacity: 1;
+           transform: translate(calc(var(--mx) * 0.3), calc(var(--my) * 0.3))
+                      scale(1.15) rotate(120deg); }
+    55%  { opacity: 0.95;
+           transform: translate(var(--mx), var(--my)) scale(1.0) rotate(270deg); }
+    100% { opacity: 0;
+           transform: translate(var(--dx), var(--dy)) scale(0.5) rotate(540deg); }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+ * §4. Page container
+ *
+ * The default `.page` is wide (1440px) so dense grids like a planning
+ * board have room to breathe. Two opt-in modifiers narrow it for
+ * decision-flow surfaces where a constrained reading width is easier:
+ *
+ *   <main class="page is-2col">    main + side rail
+ *   <main class="page is-narrow">  single centred column
+ *
+ * Both modifiers constrain the page-head too, so the title lines up
+ * with the columns underneath.
+ * ─────────────────────────────────────────────────────────────────── */
+.page {
+    max-width: var(--page-max-width);
+    margin: 0 auto;
+    padding: var(--space-5);
+}
+main.page.is-2col   { max-width: var(--page-2col-max-width);   padding: var(--space-4) var(--space-5); }
+main.page.is-narrow { max-width: var(--page-narrow-max-width); padding: var(--space-4) var(--space-5); }
+
+/* Inside `is-2col`, wrap content in `.layout-2col` with `.layout-main`
+ * (the primary reading column) and `.layout-rail` (sticky right rail).
+ *
+ *   <main class="page is-2col">
+ *       <div class="page-head">…</div>
+ *       <div class="layout-2col">
+ *           <main class="layout-main">…</main>
+ *           <aside class="layout-rail">…</aside>
+ *       </div>
+ *   </main>
+ */
+.layout-2col {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--rail-width);
+    gap: var(--space-4);
+    align-items: start;
+}
+.layout-main { min-width: 0; }   /* prevents grid blow-out on long content */
+.layout-rail {
+    position: sticky;
+    top: var(--sticky-top-offset);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    max-height: calc(100vh - var(--sticky-top-offset) - var(--space-4));
+    overflow-y: auto;
+    padding-right: 4px;
+}
+@media (max-width: 1024px) {
+    main.page.is-2col { max-width: 760px; }
+    .layout-2col { grid-template-columns: 1fr; }
+    .layout-rail { position: static; max-height: none; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+ * §5. Side-rail card vocabulary
+ *
+ * Cards inside the rail share a consistent shape: white background,
+ * subtle border + shadow, an "eyebrow" small-caps label at the top of
+ * each card. Apps stack as many cards as the task needs.
+ * ─────────────────────────────────────────────────────────────────── */
+.rail-card {
+    padding: var(--space-3);
+    background: var(--white);
+    border: var(--border-default);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+}
+.rail-card-head { margin-bottom: var(--space-2); }
+.rail-card-eyebrow {
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: var(--font-weight-bold);
+    color: var(--neutral-500);
+}
+.rail-link {
+    display: inline-block;
+    color: var(--tuv-blue-600);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+ * §6. Page chrome — head / breadcrumb / footer / spacer
+ * ─────────────────────────────────────────────────────────────────── */
+.page-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-5);
+    gap: var(--space-4);
+}
+.page-head h1 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--tuv-blue-900);
+}
+.page-actions {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.breadcrumb {
+    color: var(--neutral-600);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-3);
+}
+.breadcrumb a { color: var(--neutral-700); }
+.breadcrumb a:hover { color: var(--tuv-blue-600); }
+.breadcrumb-sep { margin: 0 6px; color: var(--neutral-300); }
+.breadcrumb strong { color: var(--neutral-900); font-weight: var(--font-weight-semibold); }
+
+.spacer { flex: 1 1 auto; }
+
+.footer {
+    max-width: 1280px;
+    margin: var(--space-5) auto;
+    padding: var(--space-3) var(--space-5);
+    color: var(--neutral-400);
+    font-size: var(--font-size-xs);
+}

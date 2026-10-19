@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">
+  <Styles>
+    <Style ss:ID="Default" ss:Name="Normal">
+      <Alignment ss:Vertical="Bottom"/>
+      <Borders/>
+      <Font/>
+      <Interior/>
+      <NumberFormat/>
+      <Protection/>
+    </Style>
+    <Style ss:ID="s24">
+      <Alignment ss:Horizontal="Center" ss:Vertical="Bottom"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+      </Borders>
+      <Font x:Family="Swiss" ss:Bold="1"/>
+      <Interior ss:Color="#C0C0C0" ss:Pattern="Solid"/>
+      <NumberFormat/>
+      <Protection/>
+    </Style>
+    <Style ss:ID="s25">
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+      </Borders>
+    </Style>
+  </Styles>
+  <Worksheet ss:Name="Publication List">
+    <Table>
+      <Column ss:StyleID="s25" ss:AutoFitWidth="0" ss:Width="122.25"/>
+      <Column ss:StyleID="s25" ss:AutoFitWidth="0" ss:Width="96.75"/>
+      <Column ss:StyleID="s25" ss:AutoFitWidth="0" ss:Width="392.25"/>
+      <Row>
+        <Cell ss:StyleID="s24">
+          <Data ss:Type="String">Reference</Data>
+        </Cell>
+        <Cell ss:StyleID="s24">
+          <Data ss:Type="String">Date</Data>
+        </Cell>
+        <Cell ss:StyleID="s24">
+          <Data ss:Type="String">Title</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 17695:2021</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2021-11-10</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Mechanical and physical properties - Guidance on categorisation of projectile toys within EN 71-1</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 15371-2:2021</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2021-07-14</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Interpretations - Part 2: Replies to requests for interpretation of the chemical standards in the EN 71-series</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 15071:2020/AC:2021</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2021-08-11</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - National translations of warnings and instructions for use in the EN 71 series</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-18:2024</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2024-12-18</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 18: Phenol in aqueous (content) and polymeric (migration) toy materials</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-1:2026</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2026-01-28</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 1: Mechanical and physical properties</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-5:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-12-10</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 5: Chemical toys (sets) other than experimental sets</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-19:2024</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2024-12-18</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 19: Migration of bisphenol A from toy materials</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-13:2021+A2:2024</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2024-11-20</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 13: Olfactory board games, cosmetic kits and gustative games</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-20:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-12-17</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 20: Microbiological safety of toys containing accessible aqueous media</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 15371-1:2021</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2021-04-28</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Interpretations - Part 1: Replies to requests for interpretation of EN 71-1, EN 71-2, EN 71-8 and EN 71-14</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-16:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-02-26</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys – Part 16: Certain chlorinated phosphorus flame retardants (TCEP, TCPP, TDCP)  in toy materials</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-8:2026</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2026-01-28</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 8: Activity toys for domestic use</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-17:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-02-26</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 17: Certain isothiazolinones (MIT, CIT, BIT) in aqueous toy materials</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-11:2005</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2005-11-02</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 11: Organic chemical compounds - Methods of analysis</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-12:2016</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2016-12-21</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 12: N-Nitrosamines and N-nitrosatable substances</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN ISO/TR 8124-8:2024</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2024-10-09</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 8: Age determination - First age grade for the appropriate play of toys (ISO/TR 8124-8:2024)</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 15071:2020</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2020-12-16</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - National translations of warnings and instructions for use in the EN 71 series</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 16918:2015</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2015-12-16</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Children´s mouthing behaviour in contact with toys</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-14:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-10-29</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 14: Trampolines for domestic use</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-10:2005</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2005-12-21</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 10: Organic chemical compounds - Sample preparation and extraction</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 18217:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-11-05</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Migration of certain elements from polymers</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-4:2020+A1:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-04-02</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 4: Experimental sets for chemistry and related activities</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-15:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-02-26</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys – Part 15: Formamide in foam toy materials (content)</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-7:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-10-29</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 7: Finger paints - Requirements and test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 18240:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-12-03</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Mechanical and physical properties - Guidance on the requirements for food-imitating toys in EN 71-1</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-3:2019+A2:2024</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2024-12-04</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 3: Migration of certain elements</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TS 17973:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-10-25</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Categorization of slime type materials</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 71-2:2020+A1:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-06-11</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Safety of toys - Part 2: Flammability</Data>
+        </Cell>
+      </Row>
+    </Table>
+  </Worksheet>
+</Workbook>

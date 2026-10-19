@@ -1,0 +1,525 @@
+{
+ "success": true,
+ "total": 28,
+ "page": 1,
+ "pages": 1,
+ "results": [
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B107.56"
+    ],
+    "DisplayTitle": "Body Repair Tools",
+    "Editions": [
+     "2018"
+    ],
+    "DesignatorYears": [
+     2018
+    ],
+    "DisplayYears": {
+     "2018": "2018 (R2023)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b107-56-body-repair-tools"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B107.600"
+    ],
+    "DisplayTitle": "Screwdrivers and Screwdriver Bits",
+    "Editions": [
+     "2016"
+    ],
+    "DesignatorYears": [
+     2016
+    ],
+    "DisplayYears": {
+     "2016": "2016 (R2021)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b107-600-screwdrivers-screwdriver-bits"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.54"
+    ],
+    "DisplayTitle": "Specifications for Hole Saws Hole Saw Arbors and HoleSaw Accessories",
+    "Editions": [
+     "1999"
+    ],
+    "DesignatorYears": [
+     1999
+    ],
+    "DisplayYears": {
+     "1999": "1999 (S2025)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94-54-specifications-hole-saws-hole-saw-arbors-hole-saw-accessories"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.55M"
+    ],
+    "DisplayTitle": "Tool Life Testing with Single Point Turning Tools",
+    "Editions": [
+     "1985"
+    ],
+    "DesignatorYears": [
+     1985
+    ],
+    "DisplayYears": {
+     "1985": "1985 (S2024)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94-55m-tool-life-testing-single-point-turning-tools"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.9"
+    ],
+    "DisplayTitle": "Taps Ground Thread with Cut Thread Appendix (Inch and Metric Sizes) with Errata",
+    "Editions": [
+     "2008"
+    ],
+    "DesignatorYears": [
+     2008
+    ],
+    "DisplayYears": {
+     "2008": "2008 (R2023)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94-9-taps-ground-thread-cut-thread-appendix-errata"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.7"
+    ],
+    "DisplayTitle": "B94.7 Hobs",
+    "Editions": [
+     "1980"
+    ],
+    "DesignatorYears": [
+     1980
+    ],
+    "DisplayYears": {
+     "1980": "1980 (S2025)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b947-b94-7-hobs"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.33.1"
+    ],
+    "DisplayTitle": "B94.33.1 Jig Bushings (Metric)",
+    "Editions": [
+     "1997"
+    ],
+    "DesignatorYears": [
+     1997
+    ],
+    "DisplayYears": {
+     "1997": "1997 (S2016)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94331-b94-33-1-jig-bushings-(metric)"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.52M"
+    ],
+    "DisplayTitle": "Specifications for Hack Saw Blades",
+    "Editions": [
+     "1999"
+    ],
+    "DesignatorYears": [
+     1999
+    ],
+    "DisplayYears": {
+     "1999": "1999 (S2025)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94-52m-specifications-hack-saw-blades"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.53"
+    ],
+    "DisplayTitle": "Solid Steel Rectangular Metal Cutting Squaring Shear Knives Dimensional Tolerances",
+    "Editions": [
+     "1978"
+    ],
+    "DesignatorYears": [
+     1978
+    ],
+    "DisplayYears": {
+     "1978": "1978 (R1984)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94-53-solid-steel-rectangular-metal-cutting-squaring-shear-knives-dimensional-tolerances"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.6"
+    ],
+    "DisplayTitle": "Knurling",
+    "Editions": [
+     "1984"
+    ],
+    "DesignatorYears": [
+     1984
+    ],
+    "DisplayYears": {
+     "1984": "1984 (S2025)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94-6-knurling"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.11M"
+    ],
+    "DisplayTitle": "Twist Drills",
+    "Editions": [
+     "1993"
+    ],
+    "DesignatorYears": [
+     1993
+    ],
+    "DisplayYears": {
+     "1993": "1993"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94-11m-twist-drills"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.19"
+    ],
+    "DisplayTitle": "Milling Cutters and End Mills",
+    "Editions": [
+     "1997"
+    ],
+    "DesignatorYears": [
+     1997
+    ],
+    "DisplayYears": {
+     "1997": "1997 (S2024)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94-19-milling-cutters-end-mills"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.2"
+    ],
+    "DisplayTitle": "Reamers",
+    "Editions": [
+     "1995"
+    ],
+    "DesignatorYears": [
+     1995
+    ],
+    "DisplayYears": {
+     "1995": "1995 (S2025)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94-2-reamers"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B107.410"
+    ],
+    "DisplayTitle": "Struck Tools",
+    "Editions": [
+     "2018"
+    ],
+    "DesignatorYears": [
+     2018
+    ],
+    "DisplayYears": {
+     "2018": "2018 (R2023)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b107-410-struck-tools-incorporation-asme-b107-43-b107-44-b107-46-b107-48-b107-49-b107-50-b107-52-b107-59"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B107.500"
+    ],
+    "DisplayTitle": "Pliers and Shears",
+    "Editions": [
+     "2020"
+    ],
+    "DesignatorYears": [
+     2020
+    ],
+    "DisplayYears": {
+     "2020": "2020"
+    },
+    "URL": "/codes-standards/find-codes-standards/b107-500-pliers"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "ASME A112.18.1/CSA B125.1",
+     "A112.18.1/CSA B125.1"
+    ],
+    "DisplayTitle": "Plumbing Supply Fittings (with 10/18 Errata)",
+    "Editions": [
+     "2024",
+     "2018",
+     "2012"
+    ],
+    "DesignatorYears": [
+     2024,
+     2018,
+     2012
+    ],
+    "DisplayYears": {
+     "2024": "2024",
+     "2018": "2018",
+     "2012": "2012 (R2017)"
+    },
+    "URL": "/codes-standards/find-codes-standards/plumbing-supply-fittings-(with-10-18-errata)"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B107.100"
+    ],
+    "DisplayTitle": "Flat Wrenches",
+    "Editions": [
+     "2023"
+    ],
+    "DesignatorYears": [
+     2023
+    ],
+    "DisplayYears": {
+     "2023": "2023"
+    },
+    "URL": "/codes-standards/find-codes-standards/b107-100-flat-wrenches"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B107.110"
+    ],
+    "DisplayTitle": "Socket Wrenches Handles and Attachments",
+    "Editions": [
+     "2019"
+    ],
+    "DesignatorYears": [
+     2019
+    ],
+    "DisplayYears": {
+     "2019": "2019"
+    },
+    "URL": "/codes-standards/find-codes-standards/b107-110-socket-wrenches-handles-attachments"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B107.14M"
+    ],
+    "DisplayTitle": "Hand Torque Tools",
+    "Editions": [
+     "1994"
+    ],
+    "DesignatorYears": [
+     1994
+    ],
+    "DisplayYears": {
+     "1994": "1994"
+    },
+    "URL": "/codes-standards/find-codes-standards/b107-14-hand-torque-tools"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.21"
+    ],
+    "DisplayTitle": "Gear Shaper Cutters",
+    "Editions": [
+     "1968"
+    ],
+    "DesignatorYears": [
+     1968
+    ],
+    "DisplayYears": {
+     "1968": "1968 (S2025)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94-21-gear-shaper-cutters"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.33"
+    ],
+    "DisplayTitle": "Jig Bushings",
+    "Editions": [
+     "1996"
+    ],
+    "DesignatorYears": [
+     1996
+    ],
+    "DisplayYears": {
+     "1996": "1996 (S2025)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94-33-jig-bushings"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.49"
+    ],
+    "DisplayTitle": "Spade Drill Blades and Spade Drill Holders",
+    "Editions": [
+     "1975"
+    ],
+    "DesignatorYears": [
+     1975
+    ],
+    "DisplayYears": {
+     "1975": "1975 (S2025)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94-49-spade-drill-blades-spade-drill-holders"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B94.51M"
+    ],
+    "DisplayTitle": "Specifications for Band Saw Blades (Metal Cutting)",
+    "Editions": [
+     "1999"
+    ],
+    "DesignatorYears": [
+     1999
+    ],
+    "DisplayYears": {
+     "1999": "1999 (S2016)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b94-51m-specifications-band-saw-blades"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B107.17"
+    ],
+    "DisplayTitle": "Gages and Mandrels for Wrench Openings",
+    "Editions": [
+     "2020"
+    ],
+    "DesignatorYears": [
+     2020
+    ],
+    "DisplayYears": {
+     "2020": "2020 (R2025)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b107-17-gages-mandrels-wrench-openings"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B107.300"
+    ],
+    "DisplayTitle": "Hand Torque Tools and Torque Testers",
+    "Editions": [
+     "2021"
+    ],
+    "DesignatorYears": [
+     2021
+    ],
+    "DisplayYears": {
+     "2021": "2021"
+    },
+    "URL": "/codes-standards/find-codes-standards/b107-300-torque-instruments"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B107.4"
+    ],
+    "DisplayTitle": "Driving and Spindle Ends for Portable Hand Impact Air and Electric Tools (Percussion Tools Excluded)",
+    "Editions": [
+     "2019"
+    ],
+    "DesignatorYears": [
+     2019
+    ],
+    "DisplayYears": {
+     "2019": "2019"
+    },
+    "URL": "/codes-standards/find-codes-standards/b107-4-driving-spindle-ends-portable-hand-impact-air-electric-tools"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "B107.400"
+    ],
+    "DisplayTitle": "Striking Tools",
+    "Editions": [
+     "2018"
+    ],
+    "DesignatorYears": [
+     2018
+    ],
+    "DisplayYears": {
+     "2018": "2018 (R2023)"
+    },
+    "URL": "/codes-standards/find-codes-standards/b107-400-striking-tools"
+   }
+  },
+  {
+   "WebsiteProductGrouping": {
+    "FullDesignator": [
+     "PASE"
+    ],
+    "DisplayTitle": "Safety Standard for Portable Automotive Service Equipment",
+    "Editions": [
+     "2024",
+     "2019",
+     "2014"
+    ],
+    "DesignatorYears": [
+     2024,
+     2019,
+     2014
+    ],
+    "DisplayYears": {
+     "2024": "2024",
+     "2019": "2019",
+     "2014": "2014"
+    },
+    "URL": "/codes-standards/find-codes-standards/pase-safety-standard-portable-automotive-service-equipment"
+   }
+  }
+ ]
+}

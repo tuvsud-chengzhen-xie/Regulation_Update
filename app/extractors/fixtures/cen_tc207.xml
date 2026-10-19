@@ -1,0 +1,997 @@
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">
+  <Styles>
+    <Style ss:ID="Default" ss:Name="Normal">
+      <Alignment ss:Vertical="Bottom"/>
+      <Borders/>
+      <Font/>
+      <Interior/>
+      <NumberFormat/>
+      <Protection/>
+    </Style>
+    <Style ss:ID="s24">
+      <Alignment ss:Horizontal="Center" ss:Vertical="Bottom"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+      </Borders>
+      <Font x:Family="Swiss" ss:Bold="1"/>
+      <Interior ss:Color="#C0C0C0" ss:Pattern="Solid"/>
+      <NumberFormat/>
+      <Protection/>
+    </Style>
+    <Style ss:ID="s25">
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+      </Borders>
+    </Style>
+  </Styles>
+  <Worksheet ss:Name="Publication List">
+    <Table>
+      <Column ss:StyleID="s25" ss:AutoFitWidth="0" ss:Width="122.25"/>
+      <Column ss:StyleID="s25" ss:AutoFitWidth="0" ss:Width="96.75"/>
+      <Column ss:StyleID="s25" ss:AutoFitWidth="0" ss:Width="392.25"/>
+      <Row>
+        <Cell ss:StyleID="s24">
+          <Data ss:Type="String">Reference</Data>
+        </Cell>
+        <Cell ss:StyleID="s24">
+          <Data ss:Type="String">Date</Data>
+        </Cell>
+        <Cell ss:StyleID="s24">
+          <Data ss:Type="String">Title</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 16122:2012</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2012-07-18</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Domestic and non-domestic storage furniture - Test methods for the determination of strength, durability and stability</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 13721:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-04-26</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Assessment of the surface reflectance</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1022:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-11-29</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Seating - Determination of stability</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 14434:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-11-22</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Writing boards for educational institutions - Ergonomic, technical and safety requirements and their test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 17902:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-12-13</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Circularity - Evaluation method for dis/re-assembly capability</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 12521:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-11-29</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Safety, strength and durability - Requirements for domestic tables</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1725:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-11-29</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Beds - Requirements for safety, strength and durability</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 15185:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-12-20</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Assessment of the surface resistance to abrasion</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 17869:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-03-08</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Test methods for strength and overload tests of connectors for furniture constructed from panel material</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 15187:2024</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2024-07-24</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Assessment of the effect of light exposure</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 597-2:2015</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2015-12-23</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Assessment of the ignitability of mattresses and upholstered bed bases - Part 2: Ignition source: match flame equivalent</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 12528:1998</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">1998-09-23</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Castors and wheels - Castors for furniture - Requirements</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 12529:1998</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">1998-09-23</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Castors and wheels - Castors for furniture - Castors for swivel chairs - Requirements</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 16955:2017</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2017-04-12</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Tapered pressure tubes for self-supporting gas springs for the height adjustment of seating - Test methods and requirements for strength and durability</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 527-2:2016+A1:2019</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2019-05-01</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Office furniture - Work tables - Part 2: Safety, strength and durability requirements</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 716-1:2017+AC:2019</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2019-03-06</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Children's cots and folding cots for domestic use - Part 1: Safety requirements</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 15588:2007</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2007-03-21</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Terms for hinges and their components</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 15706:2009</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2009-04-01</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Strength and durability of slide fittings for sliding doors and roll fronts</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 15828:2010</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2010-10-13</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Strength and durability of hinges and their components - Stays and hinges pivoting on a horizontal axis</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 16015:2010</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2010-04-21</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Terms for locking mechanisms</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 581-1:2017</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2017-03-08</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Outdoor furniture - Seating and tables for camping, domestic and contract use - Part 1: General safety requirements</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 581-3:2026</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2026-05-20</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Outdoor furniture - Mechanical safety requirements and test methods - Part 3: Tables for camping, domestic and contract use</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1023-1:1996</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">1996-03-20</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Office furniture - Screens - Part 1: Dimensions</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1335-1:2020+A1:2022</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2022-11-16</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Office furniture - Office work chair - Part 1: Dimensions - Determination of dimensions</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 12720:2009+A1:2013</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2013-10-23</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Assessment of surface resistance to cold liquids</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 14699:2004</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2004-06-09</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Office furniture - Terminology</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 17292:2018</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2018-11-14</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Technical report regarding precision data for standards EN 12720, EN 12721, EN 12722, EN 15185 and EN 15186</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1023-3:2000</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2000-05-24</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Office furniture - Screens - Part 3: Test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 17538:2020</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2020-09-02</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Common test equipment - Test foams and mattresses</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 16139:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-07-23</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Safety, strength and durability - Requirements and test methods for non-domestic seating</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 13150:2020</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2020-02-26</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Workbenches for laboratories in educational institutions - Dimensions, safety and durability requirements and test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 16121:2023/AC:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-04-23</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Non-domestic storage furniture - Requirements for safety, strength, durability and stability</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1729-1:2015/AC:2016</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2016-08-17</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Chairs and tables for educational institutions - Part 1: Functional dimensions</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 15338:2024</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2024-09-18</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Strength and durability of extension elements and their components</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 14073-1:2004</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2004-06-09</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Office furniture - Storage furniture - Part 1: Dimensions</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 17202:2018</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2018-04-18</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - General safety guidelines - Entrapment of fingers</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1730:2012</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2012-10-10</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Tables - Test methods for the determination of stability, strength and durability</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1021-1:2014</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2014-08-13</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Assessment of the ignitability of upholstered furniture - Part 1: Ignition source smouldering cigarette</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 15349:2006</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2006-02-08</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Terms for extension elements and their components</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 17737:2022</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2022-11-09</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Test and evaluation methods for the corrosion resistance of furniture fittings</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 12520:2024</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2024-11-13</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Safety, strength and durability - Requirements for domestic seating</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 16014:2011</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2011-08-03</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Strength and durability of locking mechanisms</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 17214:2019</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2019-07-31</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Visual assessment of furniture surfaces</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 12722:2009+A1:2013</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2013-10-23</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Assessment of surface resistance to dry heat</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 17191:2021</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2021-07-07</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Children’s Furniture - Seating for children - Safety requirements and test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TR 15709:2008</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2008-04-09</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Terms for slide fittings for sliding doors and roll fronts</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 747-1:2024</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2024-03-13</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Bunk beds and high beds - Part 1: Safety, strength and durability requirements</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1728:2012</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2012-07-18</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Seating - Test methods for the determination of strength and durability</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 15186:2024</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2024-03-20</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Assessment of the surface resistance to scratching</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1116:2018</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2018-01-24</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Kitchen furniture - Coordinating sizes for kitchen furniture and kitchen appliances</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1335-2:2018</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2018-11-14</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Office furniture - Office work chair - Part 2: Safety requirements</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 14749:2016+A1:2022</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2022-05-11</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Domestic and kitchen storage units and kitchen-worktops - Safety requirements and test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1130:2019/AC:2020</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2020-12-23</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Children's furniture - Cribs - Safety requirements and test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 597-1:2015</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2015-12-23</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Assessment of the ignitability of mattresses and upholstered bed bases - Part 1: Ignition source smouldering cigarette</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 581-2:2026</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2026-05-20</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Outdoor furniture - Mechanical safety requirements and test methods - Part 2: Seating for camping, domestic and contract use</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 716-2:2017</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2017-06-07</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Children's cots and folding cots for domestic use - Part 2: Test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 14703:2007</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2007-04-18</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Links for non-domestic seating linked together in a row - Strength requirements and test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 17850:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-12-20</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Star bases for seating - Requirements and test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 16890:2017+A1:2021</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2021-06-30</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Children's furniture - Mattresses for cots and cribs - Safety requirements and test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1728:2012/AC:2013</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2013-07-10</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Seating - Test methods for the determination of strength and durability</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 16611:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-04-26</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Assessment of the surface resistance to microscratching</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1729-2:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-05-31</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Chairs and tables for educational institutions - Part 2: Safety requirements and test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 14072:2003</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2003-11-05</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Glass in furniture - Test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 16122:2012/AC:2015</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2015-02-18</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Domestic and non-domestic storage furniture - Test methods for the determination of strength, durability and stability</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 747-2:2024</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2024-03-13</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Bunk beds and high beds - Part 2: Test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 527-1:2011</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2011-05-18</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Office furniture - Work tables and desks - Part 1: Dimensions</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 12727:2016</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2016-11-09</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Ranked seating - Requirements for safety, strength and durability</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 16121:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-12-20</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Non-domestic storage furniture - Requirements for safety, strength, durability and stability</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 15372:2023</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2023-12-20</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Strength, durability and safety - Requirements for non-domestic tables</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TS 18231:2026</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2026-01-28</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Guide to measuring EN 1335-1 dimensions with ISO 24496 CMD</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 15570:2008</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2008-05-14</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Strength and durability of hinges and their components - Hinges pivoting on a vertical axis</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1729-1:2015</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2015-12-02</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Chairs and tables for educational institutions - Part 1: Functional dimensions</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 12721:2009+A1:2013</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2013-10-23</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Assessment of surface resistance to wet heat</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1129-2:1995</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">1995-02-10</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Foldaway beds - Safety requirements and testing - Part 2: Test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 12227:2010</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2010-08-18</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Playpens for domestic use - Safety requirements and test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1957:2012</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2012-10-17</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Beds and mattresses - Test methods for the determination of functional characteristics and assessment criteria</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1021-2:2014</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2014-08-13</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Assessment of the ignitability of upholstered furniture - Part 2: Ignition source match flame equivalent</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1023-2:2000</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2000-05-24</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Office furniture - Screens - Part 2: Mechanical safety requirements</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 13722:2004</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2004-07-21</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Assessment of the surface gloss</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 15939:2019</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2019-06-12</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Strength and loading capacity of wall attachment devices</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1130:2019</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2019-11-27</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Children's furniture - Cribs - Safety requirements and test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1129-1:1995</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">1995-02-10</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Foldaway beds - Safety requirements and testing - Part 1: Safety requirements</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 1334:1996</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">1996-03-20</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Domestic furniture - Beds and mattresses - Methods of measurement and recommended tolerances</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 16337:2013</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2013-06-05</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Hardware for furniture - Strength and loading capacity of shelf supports</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 13759:2012</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2012-04-18</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Operating mechanisms for seating and sofa-beds - Test methods</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">CEN/TS 16209:2022</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2022-03-23</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Furniture - Classification for properties for furniture surfaces</Data>
+        </Cell>
+      </Row>
+    </Table>
+  </Worksheet>
+</Workbook>

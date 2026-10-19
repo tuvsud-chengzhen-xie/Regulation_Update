@@ -1,0 +1,116 @@
+/*
+ * TÜV SÜD CPS Design Tokens
+ * Reusable design variables for all CPS Center of Excellence apps
+ * Clean white medical-precision aesthetic with TÜV SÜD blue accents
+ */
+
+:root {
+    /* ── Brand ──────────────────────────────────────────────── */
+    --tuv-blue-900: #003d7a;
+    --tuv-blue-700: #005299;
+    --tuv-blue-600: #0066cc;
+    --tuv-blue-400: #4d9edf;
+    --tuv-blue-200: #b4d7ff;
+    --tuv-blue-100: #eef3fa;
+    --tuv-blue-50:  #f0f6ff;
+
+    /* ── Neutrals ───────────────────────────────────────────── */
+    --neutral-900: #1a2942;
+    --neutral-700: #3a4a5a;
+    --neutral-600: #5a6a7a;
+    --neutral-400: #8899aa;
+    --neutral-300: #a0b0c0;
+    --neutral-200: #c8d4e0;
+    --neutral-150: #d0dbe8;
+    --neutral-100: #dce4ed;
+    --neutral-75:  #e4eaf0;
+    --neutral-50:  #eef2f6;
+    --neutral-25:  #f4f6f9;
+    --neutral-10:  #f8fafb;
+    --white:       #ffffff;
+
+    /* ── Semantic ────────────────────────────────────────────── */
+    --success-600: #16a34a;
+    --success-500: #22c55e;
+    --success-100: #dcfce7;
+    --error-600:   #b91c1c;
+    --error-500:   #dc3545;
+    --error-100:   #fef2f2;
+    --warning-600: #d97706;
+    --warning-500: #f59e0b;
+    --warning-100: #fef9c3;
+    --info-500:    var(--tuv-blue-600);
+    --info-100:    var(--tuv-blue-50);
+
+    /* ── Typography ─────────────────────────────────────────── */
+    --font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-size-xs:  0.72rem;
+    --font-size-sm:  0.8rem;
+    --font-size-base: 0.85rem;
+    --font-size-md:  0.95rem;
+    --font-size-lg:  1.15rem;
+    --font-size-xl:  1.25rem;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --font-weight-extrabold: 800;
+
+    /* ── Spacing ─────────────────────────────────────────────── */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2rem;
+
+    /* ── Radius ──────────────────────────────────────────────── */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 10px;
+    --radius-2xl: 12px;
+    --radius-3xl: 14px;
+    --radius-full: 999px;
+
+    /* ── Elevation ───────────────────────────────────────────── */
+    --shadow-xs: 0 1px 2px rgba(0, 30, 60, 0.04);
+    --shadow-sm: 0 1px 3px rgba(0, 30, 60, 0.05);
+    --shadow-md: 0 4px 16px rgba(0, 30, 60, 0.10);
+    --shadow-lg: 0 8px 24px rgba(0, 30, 60, 0.12);
+    --shadow-xl: 0 16px 48px rgba(0, 30, 60, 0.15);
+    --shadow-blue-sm: 0 2px 8px rgba(0, 102, 204, 0.10);
+    --shadow-blue-md: 0 2px 8px rgba(0, 102, 204, 0.25);
+
+    /* ── Motion ──────────────────────────────────────────────── */
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --duration-instant: 0.1s;
+    --duration-fast: 0.15s;
+    --duration-normal: 0.25s;
+    --duration-slow: 0.4s;
+    --duration-slower: 0.6s;
+
+    /* ── Borders ─────────────────────────────────────────────── */
+    --border-light: 1px solid var(--neutral-100);
+    --border-default: 1px solid var(--neutral-150);
+    --border-accent: 1px solid var(--tuv-blue-600);
+
+    /* ── Layout ──────────────────────────────────────────────── */
+    /*
+     * Topbar's rendered height + a small breathing gap. Sticky elements
+     * inside <main> use this as `top:` so they stop below the topbar
+     * instead of disappearing behind it. Topbar = ~40px logo content
+     * + 24px vertical padding (~64px); + 12px gap = 76px.
+     */
+    --sticky-top-offset: 76px;
+
+    /* Page-width caps. Default .page is wide (Planner-style dense grids
+     * need the room). Decision-flow surfaces opt into `is-2col` (1180)
+     * or `is-narrow` (880). */
+    --page-max-width: 1440px;
+    --page-2col-max-width: 1180px;
+    --page-narrow-max-width: 880px;
+    --rail-width: 300px;
+}

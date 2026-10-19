@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Standard Update Monitoring — by CPS Center of Excellence</title>
+<link rel="icon" type="image/png" href="/static/logo.png">
+<link rel="stylesheet" href="/ds/tokens.css">
+<link rel="stylesheet" href="/ds/shell.css">
+<link rel="stylesheet" href="/ds/nudges.css">
+<!-- App-specific styles last so they can override design-system defaults. -->
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<!-- ═══════════ TOPBAR — corporate identity header ═══════════ -->
+<header class="topbar">
+    <div class="topbar-inner">
+        <a class="brand" href="#/standards">
+            <img src="/static/logo.png" alt="TÜV SÜD" class="brand-logo">
+            <div class="brand-text">
+                <span class="brand-title">Standard Update Monitoring</span>
+                <span class="brand-sub">by CPS Center of Excellence</span>
+            </div>
+        </a>
+        <nav class="topnav" id="topnav">
+            <a href="#/standards" data-view="standards">Standards</a>
+            <a href="#/changes" data-view="changes">Change log</a>
+            <a href="#/runs" data-view="runs">Runs</a>
+            <a href="#/issues" data-view="issues">Issues</a>
+            <a href="#/sources" data-view="sources">Sources</a>
+            <a href="#/subscriptions" data-view="subscriptions">Subscriptions</a>
+        </nav>
+        <span class="spacer"></span>
+
+        <!-- Cumulative metric this app tracks: catalogue updates caught by
+             automated monitoring. Celebrates when a run finds changes. -->
+        <a href="#/changes" id="savings-counter" data-value="0" class="topnav-savings"
+           title="Catalogue updates this monitor has caught — new editions, withdrawals and reinstatements found across all sources.">
+            <svg class="savings-octagon" viewBox="0 0 100 100" aria-hidden="true">
+                <polygon points="30,5 70,5 95,30 95,70 70,95 30,95 5,70 5,30" fill="currentColor"/>
+            </svg>
+            <span class="savings-value">0</span>
+            <span class="savings-label">updates caught</span>
+        </a>
+
+        <a href="#/admin" class="topnav-setup" data-view="admin">Setup</a>
+    </div>
+</header>
+
+
+<!-- ═══════════ CONNECT — shown until an API key is accepted ═══════════ -->
+<main class="page is-narrow view" id="view-connect">
+    <div class="page-head">
+        <div class="head-text">
+            <h1>Sign in</h1>
+            <p class="sub">Access is per individual internal user.</p>
+        </div>
+    </div>
+    <div class="card">
+        <label class="form-label" for="key">API key</label>
+        <div class="row">
+            <input id="key" class="field field-search" type="password"
+                   autocomplete="off" placeholder="X-API-Key">
+            <button class="btn btn-primary" id="connect">Connect</button>
+        </div>
+        <p class="muted" style="margin:var(--space-3) 0 0;font-size:var(--font-size-sm)">
+            Your key identifies you to the monitoring database and decides what you
+            may do. Administrators can additionally manage users and sources,
+            trigger monitoring runs and export the database.
+        </p>
+    </div>
+</main>
+
+
+<!-- ═══════════ STANDARDS — dense data grid, default wide page ═══════════ -->
+<main class="page view" id="view-standards">
+    <div class="page-head">
+        <div class="head-text">
+            <h1>Standards database</h1>
+            <p class="sub" id="std-sub">Every standard captured from the monitored catalogues.</p>
+        </div>
+        <div class="page-actions">
+            <button class="btn" id="btn-export">Export Excel</button>
+            <button class="btn btn-primary" id="btn-run">Run monitoring</button>
+        </div>
+    </div>
+
+    <!-- KPI strip: the four headline numbers. -->
+    <div class="kpi-strip" id="kpi-strip" aria-busy="true"></div>
+
+    <!-- Scope chips: which data set. -->
+    <div class="chips" id="body-chips"></div>
+
+    <!-- Active-filter chips: what is narrowing it. Permanent wrapper. -->
+    <div class="activechips" data-role="activechips" id="std-activechips"></div>
+
+    <div class="card">
+        <div class="card-head">
+            <input id="q" class="field field-search" type="search"
+                   placeholder="Search Standard ID or title" aria-label="Search standards">
+            <select id="f-status" class="field" aria-label="Status">
+                <option value="">All statuses</option>
+                <option>Current</option>
+                <option>Withdrawn</option>
+            </select>
+            <span class="spacer"></span>
+            <span class="count muted" id="std-count"></span>
+        </div>
+
+        <div data-role="result" id="std-result">
+            <div class="tbl-wrap">
+                <table class="tbl" id="t-standards">
+                    <colgroup>
+                        <col style="width:250px"><col style="width:150px"><col>
+                        <col style="width:170px"><col style="width:118px">
+                        <col style="width:130px"><col style="width:104px">
+                    </colgroup>
+                    <thead><tr>
+                        <th>Standard ID + Version</th><th>TC / SC code</th>
+                        <th>English title</th><th>Chinese title</th>
+                        <th>Publish date</th><th>Implement date</th><th>Status</th>
+                    </tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="tbl-foot">
+                <button class="btn btn-sm" id="prev">← Previous</button>
+                <button class="btn btn-sm" id="next">Next →</button>
+                <span class="count" id="std-page"></span>
+            </div>
+        </div>
+    </div>
+</main>
+
+
+<!-- ═══════════ CHANGE LOG ═══════════ -->
+<main class="page view" id="view-changes">
+    <div class="page-head">
+        <div class="head-text">
+            <h1>Change log</h1>
+            <p class="sub">Every status change the update rule has applied, newest first.</p>
+        </div>
+    </div>
+
+    <div class="chips" id="change-chips"></div>
+    <div class="activechips" data-role="activechips" id="chg-activechips"></div>
+
+    <div class="card">
+        <div data-role="result" id="chg-result">
+            <div class="tbl-wrap">
+                <table class="tbl" id="t-changes">
+                    <colgroup>
+                        <col style="width:70px"><col style="width:120px"><col style="width:250px">
+                        <col style="width:150px"><col><col style="width:180px"><col style="width:150px">
+                    </colgroup>
+                    <thead><tr>
+                        <th class="num">Run</th><th>Change</th><th>Standard ID + Version</th>
+                        <th>TC / SC code</th><th>English title</th>
+                        <th>Status change</th><th>When (UTC)</th>
+                    </tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+
+<!-- ═══════════ RUNS — decision surface, main + sticky rail ═══════════ -->
+<main class="page is-2col view" id="view-runs">
+    <div class="page-head">
+        <div class="head-text">
+            <h1>Monitoring runs</h1>
+            <p class="sub">Each run extracts every active source, reconciles it and alerts subscribers.</p>
+        </div>
+    </div>
+
+    <div class="layout-2col">
+        <div class="layout-main">
+            <div class="card">
+                <div data-role="result" id="runs-result">
+                    <div class="tbl-wrap">
+                        <table class="tbl" id="t-runs" style="min-width:756px">
+                            <colgroup>
+                                <col style="width:58px"><col style="width:132px"><col style="width:80px">
+                                <col style="width:92px"><col style="width:88px"><col style="width:70px">
+                                <col style="width:92px"><col style="width:64px"><col style="width:70px">
+                            </colgroup>
+                            <thead><tr>
+                                <th class="num">Run</th><th>Started (UTC)</th>
+                                <th>Trigger</th><th>Status</th><th class="num">Extracted</th>
+                                <th class="num">Added</th><th class="num">Withdrawn</th>
+                                <th class="num">Failed</th><th class="num">Alerts</th>
+                            </tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="layout-rail">
+            <div class="rail-card">
+                <header class="rail-card-head"><span class="rail-card-eyebrow">Trigger a run</span></header>
+                <p>Every source is fetched live from its own site. ISO, BIFMA, ALI and
+                   WSTDA are read through a headless browser; the rest over plain HTTPS.</p>
+                <div class="stack">
+                    <button class="btn btn-primary" id="btn-run-live">Run monitoring now</button>
+                </div>
+            </div>
+            <div class="rail-card">
+                <header class="rail-card-head"><span class="rail-card-eyebrow">Last run</span></header>
+                <div id="rail-lastrun"><p class="muted">No runs yet.</p></div>
+            </div>
+            <div class="rail-card">
+                <header class="rail-card-head"><span class="rail-card-eyebrow">Not captured</span></header>
+                <div id="rail-issues"><p class="muted">No runs yet.</p></div>
+            </div>
+            <div class="rail-card">
+                <header class="rail-card-head"><span class="rail-card-eyebrow">Schedule</span></header>
+                <div id="rail-schedule"><p class="muted">Loading…</p></div>
+            </div>
+        </aside>
+    </div>
+</main>
+
+
+<!-- ═══════════ EXTRACTION ISSUES ═══════════ -->
+<main class="page view" id="view-issues">
+    <div class="page-head">
+        <div class="head-text">
+            <h1>Extraction issues</h1>
+            <p class="sub">Everything the last run saw on a source site but could not put in
+               the database — so a gap is never mistaken for a withdrawn standard.</p>
+        </div>
+        <div class="page-actions">
+            <button class="btn" id="btn-issues-all">Show all runs</button>
+        </div>
+    </div>
+
+    <div class="kpi-strip" id="issue-kpis" aria-busy="true"></div>
+
+    <div class="chips" id="issue-chips"></div>
+    <div class="activechips" data-role="activechips" id="iss-activechips"></div>
+
+    <div class="card">
+        <div class="card-head">
+            <span class="eyebrow">What each scope means</span>
+            <span class="spacer"></span>
+            <span class="count muted" id="iss-count"></span>
+        </div>
+        <p class="muted" style="margin:0 0 var(--space-3);font-size:var(--font-size-sm)">
+            <b>Lost</b> — the standard is <b>not</b> in the database.
+            <b>Incomplete</b> — it is, but a field could not be read.
+            <b>Source</b> — a whole committee was missed this run and its existing
+            records were deliberately left untouched.
+        </p>
+        <div data-role="result" id="iss-result">
+            <div class="tbl-wrap">
+                <table class="tbl" id="t-issues" style="min-width:1080px">
+                    <colgroup>
+                        <col style="width:62px"><col style="width:96px"><col style="width:150px">
+                        <col style="width:186px"><col style="width:160px"><col>
+                        <col style="width:112px">
+                    </colgroup>
+                    <thead><tr>
+                        <th class="num">Run</th><th>Scope</th><th>Source</th>
+                        <th>Standard ID</th><th>Reason</th>
+                        <th>What the site said</th><th>Where</th>
+                    </tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+
+<!-- ═══════════ SOURCES ═══════════ -->
+<main class="page view" id="view-sources">
+    <div class="page-head">
+        <div class="head-text">
+            <h1>Monitored sources</h1>
+            <p class="sub">CEN/TCs, ISO TCs and SCs, ASTM subcommittees, ASME designator groups and single-site publishers — all fetched live.</p>
+        </div>
+    </div>
+
+    <div class="chips" id="source-chips"></div>
+    <div class="activechips" data-role="activechips" id="src-activechips"></div>
+
+    <div class="card">
+        <div data-role="result" id="src-result">
+            <div class="tbl-wrap">
+                <table class="tbl" id="t-sources">
+                    <colgroup>
+                        <col style="width:84px"><col style="width:186px"><col>
+                        <col style="width:104px"><col style="width:96px">
+                        <col style="width:150px"><col style="width:136px">
+                    </colgroup>
+                    <thead><tr>
+                        <th>Body</th><th>TC / SC code</th><th>Group name</th>
+                        <th class="num">Standards</th><th class="num">Current</th>
+                        <th>Transport</th><th>Last run (UTC)</th>
+                    </tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+
+<!-- ═══════════ SUBSCRIPTIONS — main + rail, alerts as master–detail ═══ -->
+<main class="page is-2col view" id="view-subscriptions">
+    <div class="page-head">
+        <div class="head-text">
+            <h1>Subscriptions &amp; alerts</h1>
+            <p class="sub">Follow the areas you are responsible for and get one digest per run.</p>
+        </div>
+    </div>
+
+    <div class="layout-2col">
+        <div class="layout-main">
+            <div class="card">
+                <div class="card-head"><h2>My subscriptions</h2></div>
+                <div data-role="result" id="subs-result">
+                    <div class="tbl-wrap">
+                        <table class="tbl" id="t-subs" style="min-width:520px">
+                            <colgroup><col style="width:140px"><col><col style="width:90px"><col style="width:110px"></colgroup>
+                            <thead><tr><th>Type</th><th>Value</th><th>Active</th><th></th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><h2>Alerts</h2></div>
+                <!-- Pattern B: list stays in view while one alert is read in full. -->
+                <div class="md-split">
+                    <div class="mlist" id="alert-list"></div>
+                    <div class="mpane" id="alert-pane">
+                        <p class="muted">Select an alert to read it.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="layout-rail">
+            <div class="rail-card">
+                <header class="rail-card-head"><span class="rail-card-eyebrow">New subscription</span></header>
+                <div class="stack">
+                    <div>
+                        <label class="form-label" for="s-type">Scope</label>
+                        <select id="s-type" class="field" style="width:100%">
+                            <option value="standard">Per standard</option>
+                            <option value="committee">Per committee (TC/SC)</option>
+                            <option value="body">Per standards body</option>
+                            <option value="keyword">Per keyword</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="s-value">Value</label>
+                        <input id="s-value" class="field" style="width:100%"
+                               placeholder="e.g. CEN/TC 207">
+                    </div>
+                    <button class="btn btn-primary" id="s-add">Subscribe</button>
+                </div>
+            </div>
+            <div class="rail-card">
+                <header class="rail-card-head"><span class="rail-card-eyebrow">How matching works</span></header>
+                <p><b>Standard</b> — follows a standard across versions:
+                   <code>EN 581-1</code> also matches <code>EN 581-1:2026</code>.</p>
+                <p><b>Committee</b> — <code>ISO/TC 29</code> also matches its subcommittees.</p>
+                <p><b>Keyword</b> — matched against Standard ID, English title and committee.</p>
+            </div>
+        </aside>
+    </div>
+</main>
+
+
+<!-- ═══════════ ADMIN / SETUP — focus surface ═══════════ -->
+<main class="page is-narrow view" id="view-admin">
+    <div class="page-head">
+        <div class="head-text">
+            <h1>Setup</h1>
+            <p class="sub" id="admin-sub"></p>
+        </div>
+        <div class="page-actions">
+            <button class="btn btn-ghost" id="btn-signout">Sign out</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head">
+            <h2>Export</h2><span class="spacer"></span>
+            <button class="btn btn-primary" id="btn-export2">Download Excel</button>
+        </div>
+        <p class="muted" style="margin:0;font-size:var(--font-size-sm)">
+            The workbook's first seven columns are the bilingual headers of
+            <i>Database Format.xlsx</i>, followed by the operational columns, plus
+            <i>Sources</i> and <i>Change Log</i> sheets. Administrators only.
+        </p>
+    </div>
+
+    <div class="card">
+        <div class="card-head">
+            <h2>AI training data</h2><span class="spacer"></span>
+            <button class="btn btn-sm" id="btn-quality">Quality report</button>
+            <button class="btn btn-sm" id="btn-sessions">Stored files</button>
+        </div>
+        <p class="muted" style="margin:0 0 var(--space-3);font-size:var(--font-size-sm)">
+            Every mutation is captured as W3C-compliant JSONL under
+            <code>AI_Training_Data/</code>, per the Unified Annotation Training-Data
+            Framework.
+        </p>
+        <pre class="pre" id="admin-out">Nothing requested yet.</pre>
+    </div>
+</main>
+
+
+<footer class="footer">
+    <span id="footer-text">Automated Standard Update Monitoring — by CPS Center of Excellence</span>
+</footer>
+
+<script src="/ds/nudges.js"></script>
+<script src="/ds/shell.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

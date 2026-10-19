@@ -1,0 +1,442 @@
+/*
+ * Standard Update Monitoring — app-specific styles
+ * ──────────────────────────────────────────────────────────────────
+ * Load order: /ds/tokens.css → /ds/shell.css → /ds/nudges.css → this file.
+ *
+ * This app is a DATA SURFACE, so it follows `dashboards.md`: KPI strip,
+ * scope + active-filter chips, Pattern-A scan tables, skeleton-then-patch
+ * loading. It has no Layer-3 AI tool, so it deliberately uses none of the
+ * AI identity (no command bar, no swarm overlay) — extraction is
+ * deterministic scraping and the search box is a plain table filter.
+ *
+ * Everything here is either (a) a component the design system documents but
+ * does not ship as CSS (buttons, KPI strip, chips, tables, skeletons), built
+ * to its published spec, or (b) genuinely app-specific. Nothing overrides
+ * shell.css, so the design system can be replaced wholesale on an update.
+ */
+
+:root {
+    /* shell.css's .rail-card-eyebrow references --neutral-500, which
+     * tokens.css does not define. Fill the gap here rather than editing the
+     * vendored design-system file. */
+    --neutral-500: #6b7a8a;
+
+    /* Glass surface (dashboards.md §2). */
+    --glass-bg: rgba(255, 255, 255, 0.66);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.92);
+    --glass-radius: 20px;
+    --glass-shadow: 0 16px 40px rgba(0, 61, 122, 0.11), inset 0 1px 0 #fff;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Page ground — the atmospheric wash the glass cards sit on
+ * ─────────────────────────────────────────────────────────────────── */
+body {
+    margin: 0;
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    color: var(--neutral-900);
+    background: var(--neutral-25);
+    -webkit-font-smoothing: antialiased;
+}
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(1100px 620px at 18% -8%, rgba(0, 102, 204, 0.13), transparent 62%),
+        radial-gradient(900px 520px at 92% 4%, rgba(77, 158, 223, 0.10), transparent 60%),
+        repeating-linear-gradient(0deg, rgba(0, 61, 122, 0.035) 0 1px, transparent 1px 52px),
+        repeating-linear-gradient(90deg, rgba(0, 61, 122, 0.035) 0 1px, transparent 1px 52px);
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 46%, transparent 92%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 46%, transparent 92%);
+}
+a { color: var(--tuv-blue-600); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h2 { font-size: var(--font-size-lg); color: var(--tuv-blue-900); margin: 0; }
+.muted { color: var(--neutral-600); }
+.page-head p.sub { margin: 4px 0 0; color: var(--neutral-600); font-size: var(--font-size-sm); }
+.page-head .head-text { min-width: 0; }
+.eyebrow {
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: var(--font-weight-bold);
+    color: var(--neutral-500);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Card — the one panel treatment on the page (dashboards.md §2)
+ * ─────────────────────────────────────────────────────────────────── */
+.card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(1.25);
+    -webkit-backdrop-filter: blur(20px) saturate(1.25);
+    border: var(--glass-border);
+    border-radius: var(--glass-radius);
+    box-shadow: var(--glass-shadow);
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+.card-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+    flex-wrap: wrap;
+}
+.card-head .spacer { flex: 1 1 auto; }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Buttons — spec'd in the design system's shell.html preview
+ * ─────────────────────────────────────────────────────────────────── */
+.btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--neutral-150);
+    background: var(--white); color: var(--neutral-900);
+    font-family: inherit;
+    font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);
+    text-decoration: none; cursor: pointer;
+    transition: background var(--duration-fast) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-instant) var(--ease-out);
+}
+.btn:hover { background: var(--neutral-10); text-decoration: none; }
+.btn:active { transform: scale(0.97); }
+.btn:focus-visible {
+    outline: none;
+    border-color: var(--tuv-blue-600);
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
+}
+.btn[disabled] { opacity: 0.55; pointer-events: none; }
+.btn-primary {
+    background: var(--tuv-blue-600); color: var(--white);
+    border-color: var(--tuv-blue-600); box-shadow: var(--shadow-blue-sm);
+}
+.btn-primary:hover { background: var(--tuv-blue-700); border-color: var(--tuv-blue-700); }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--neutral-700); }
+.btn-ghost:hover { background: rgba(255, 255, 255, 0.7); }
+.btn-sm { padding: 3px var(--space-2); font-size: var(--font-size-xs); }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Filter controls — pill, glass, 3px focus ring (dashboards.md §4)
+ * ─────────────────────────────────────────────────────────────────── */
+.field, .chip {
+    border-radius: var(--radius-full);
+    border: 1px solid rgba(180, 215, 255, 0.8);
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 6px 14px;
+    color: var(--tuv-blue-700);
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
+.field::placeholder { color: var(--neutral-400); font-weight: var(--font-weight-normal); }
+.field:focus, .chip:focus-visible {
+    outline: none;
+    border-color: var(--tuv-blue-600);
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
+}
+.field-search { min-width: 260px; }
+
+/* Scope chips — which data set am I looking at (mutually exclusive). */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--space-3); }
+.chip { cursor: pointer; transition: background var(--duration-fast) var(--ease-out),
+                                     color var(--duration-fast) var(--ease-out); }
+.chip:hover { background: rgba(255, 255, 255, 0.95); }
+.chip.is-active {
+    /* Filled gradient, not a border change — border-only is easy to miss. */
+    background: linear-gradient(135deg, var(--tuv-blue-600), var(--tuv-blue-400));
+    border-color: var(--tuv-blue-600);
+    color: var(--white);
+    box-shadow: var(--shadow-blue-md);
+}
+.chip .chip-count {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.7;
+    margin-left: 5px;
+    font-weight: var(--font-weight-normal);
+}
+
+/* Active-filter chips — what is narrowing the set. Wrapper is permanent so
+ * the layout below never shifts when chips appear or disappear. */
+.activechips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    min-height: 30px;
+    margin-bottom: var(--space-3);
+    align-items: center;
+}
+.activechip {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 4px 6px 4px 12px;
+    border-radius: var(--radius-full);
+    background: var(--tuv-blue-50);
+    border: 1px solid var(--tuv-blue-200);
+    color: var(--tuv-blue-700);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+}
+.activechip b { font-weight: var(--font-weight-bold); }
+.activechip button {
+    border: none; background: rgba(0, 102, 204, 0.12); color: var(--tuv-blue-700);
+    width: 16px; height: 16px; border-radius: var(--radius-full);
+    cursor: pointer; line-height: 1; font-size: 10px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.activechip button:hover { background: var(--tuv-blue-600); color: var(--white); }
+.activechip--clear {
+    background: transparent; border-color: var(--neutral-200);
+    color: var(--neutral-600); cursor: pointer; padding: 4px 12px;
+}
+.activechip--clear:hover { border-color: var(--tuv-blue-600); color: var(--tuv-blue-700); }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * KPI strip (dashboards.md §3) — four tiles, first is the headline
+ * ─────────────────────────────────────────────────────────────────── */
+.kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: var(--space-4);
+}
+@media (max-width: 920px) { .kpi-strip { grid-template-columns: repeat(2, 1fr); } }
+
+.kpi-tile {
+    position: relative;
+    padding: 18px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(1.25);
+    -webkit-backdrop-filter: blur(20px) saturate(1.25);
+    border: var(--glass-border);
+    border-radius: var(--glass-radius);
+    box-shadow: var(--glass-shadow);
+    overflow: hidden;
+    animation: kpi-in var(--duration-slow) cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 60ms);
+    transition: transform var(--duration-normal) var(--ease-out);
+}
+.kpi-tile::before {
+    /* 1px highlight along the top edge — makes it a physical panel. */
+    content: "";
+    position: absolute; inset: 0 0 auto 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+}
+.kpi-tile:hover { transform: translateY(-2px); }
+.kpi-label, .kpi-value, .kpi-sub {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.kpi-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--neutral-500); font-weight: var(--font-weight-semibold);
+}
+.kpi-value {
+    font-size: 25px; font-weight: var(--font-weight-bold);
+    color: var(--tuv-blue-900);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+}
+.kpi-tile:first-child .kpi-value {
+    font-size: 54px; letter-spacing: -0.045em; line-height: 1.05;
+    background: linear-gradient(135deg, var(--tuv-blue-900), var(--tuv-blue-400));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+}
+.kpi-sub { font-size: var(--font-size-sm); color: var(--neutral-600); }
+
+@keyframes kpi-in {
+    from { opacity: 0; transform: translateY(16px) scale(0.92); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Pattern A — scan table (dashboards.md §5)
+ * One row = one line. Fixed layout + colgroup + min-width + x-scroll.
+ * ─────────────────────────────────────────────────────────────────── */
+.tbl-wrap { overflow-x: auto; overflow-y: visible; border-radius: var(--radius-lg); }
+table.tbl {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: var(--font-size-sm);
+}
+table.tbl th {
+    position: sticky; top: 0; z-index: 2;
+    padding: 9px 10px;
+    text-align: left;
+    background: rgba(244, 246, 249, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--neutral-150);
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    font-weight: var(--font-weight-bold); color: var(--neutral-500);
+    /* Headers stay on one line too, so the header band never changes height. */
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+table.tbl td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--neutral-75);
+    color: var(--neutral-900);
+    /* One row = one line, always. A table whose rows change height
+     * cannot be scanned. */
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+table.tbl tbody tr { transition: background var(--duration-instant); }
+table.tbl tbody tr:hover td { background: rgba(240, 246, 255, 0.75); }
+table.tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.tbl .id { font-weight: var(--font-weight-semibold); color: var(--tuv-blue-900); }
+table.tbl .empty, table.tbl .empty:hover td {
+    color: var(--neutral-500); text-align: center; padding: var(--space-5);
+    white-space: normal; background: none;
+}
+
+.tbl-foot {
+    display: flex; align-items: center; gap: var(--space-3);
+    margin-top: var(--space-3); flex-wrap: wrap;
+}
+.tbl-foot .count { font-size: var(--font-size-sm); color: var(--neutral-600); }
+.tbl-foot .count b { color: var(--neutral-900); font-variant-numeric: tabular-nums; }
+
+/* Badges — status and change type. Never a coloured row background. */
+.badge {
+    display: inline-block; padding: 2px 9px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold);
+    line-height: 1.5;
+}
+.badge.is-current    { background: var(--success-100); color: var(--success-600); }
+.badge.is-withdrawn  { background: var(--error-100);   color: var(--error-600); }
+.badge.is-added      { background: var(--success-100); color: var(--success-600); }
+.badge.is-reinstated,
+.badge.is-modified   { background: var(--warning-100); color: var(--warning-600); }
+.badge.is-success    { background: var(--success-100); color: var(--success-600); }
+.badge.is-partial,
+.badge.is-skipped    { background: var(--warning-100); color: var(--warning-600); }
+.badge.is-failed     { background: var(--error-100);   color: var(--error-600); }
+
+/* Body / committee badge — same colour for the same authority everywhere. */
+.srcbadge {
+    display: inline-block; padding: 1px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--neutral-50); border: 1px solid var(--neutral-100);
+    color: var(--neutral-700);
+    font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold);
+}
+.srcbadge.b-CEN   { background: #eef3fa; border-color: #cddff2; color: #17518c; }
+.srcbadge.b-ISO   { background: #eef7f1; border-color: #cbe6d6; color: #1a6b42; }
+.srcbadge.b-ASTM  { background: #f5eefa; border-color: #e0cdf0; color: #6b2f96; }
+.srcbadge.b-ASME  { background: #fdf3e8; border-color: #f3ddc0; color: #97590d; }
+.srcbadge.b-BIFMA { background: #eef6fa; border-color: #cbe3f0; color: #14607f; }
+.srcbadge.b-ALI   { background: #faf0ee; border-color: #f0d5cd; color: #99432c; }
+.srcbadge.b-WSTDA { background: #f0f0f7; border-color: #d6d6ea; color: #40409c; }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Loading — never blank the view (dashboards.md §7)
+ * ─────────────────────────────────────────────────────────────────── */
+[data-role="result"] { transition: opacity var(--duration-normal) var(--ease-out); }
+/* Pending keeps the dashboard on screen. Opacity only — NO transform. */
+[data-role="result"].is-swapping { opacity: 0.5; }
+.is-busy { opacity: 0.55; pointer-events: none;
+           transition: opacity var(--duration-fast) var(--ease-out); }
+
+.skel {
+    border-radius: var(--radius-lg);
+    background: linear-gradient(100deg,
+        rgba(255, 255, 255, 0.35) 20%,
+        rgba(255, 255, 255, 0.85) 42%,
+        rgba(255, 255, 255, 0.35) 64%);
+    background-size: 240% 100%;
+    animation: skel-sweep 1.35s linear infinite;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+/* Heights match the real blocks they stand in for — measured, not guessed:
+ * KPI tile 123px, table row 38px (34 + 4 gap), scope-chip row 29px. */
+.skel--tile { height: 123px; border-radius: var(--glass-radius); }
+.skel--chips { height: 29px; border-radius: var(--radius-full); width: 62%; }
+.skel--row { height: 34px; margin-bottom: 4px; border-radius: var(--radius-sm); }
+.skel--head { height: 44px; width: 40%; margin-bottom: var(--space-3); }
+@keyframes skel-sweep {
+    from { background-position: 140% 0; }
+    to   { background-position: -40% 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Pattern B — master–detail reading pane (used for alerts)
+ * ─────────────────────────────────────────────────────────────────── */
+.md-split { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: var(--space-4); }
+@media (max-width: 900px) { .md-split { grid-template-columns: 1fr; } }
+.mlist { max-height: 440px; overflow-y: auto; border-radius: var(--radius-lg); }
+.mrow {
+    display: block; width: 100%; text-align: left;
+    padding: 9px 12px; border: none; border-left: 3px solid transparent;
+    border-bottom: 1px solid var(--neutral-75);
+    background: transparent; cursor: pointer; font-family: inherit;
+    transition: background var(--duration-instant);
+}
+.mrow:hover { background: rgba(240, 246, 255, 0.8); }
+.mrow.is-selected { background: var(--tuv-blue-50); border-left-color: var(--tuv-blue-600); }
+.mrow-title {
+    font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold);
+    color: var(--neutral-900);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mrow-meta {
+    font-size: var(--font-size-xs); color: var(--neutral-600); margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mpane {
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid var(--neutral-75);
+    border-radius: var(--radius-lg);
+    min-height: 200px;
+}
+.mpane.is-swapping-pane { opacity: 0; transform: translateY(4px); }
+.mpane { transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out); }
+.pre {
+    white-space: pre-wrap;
+    font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--neutral-700); margin: 0;
+    max-height: 420px; overflow: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Rail extras + misc
+ * ─────────────────────────────────────────────────────────────────── */
+.rail-card p { margin: 0 0 var(--space-2); font-size: var(--font-size-sm); color: var(--neutral-700); }
+.rail-card p:last-child { margin-bottom: 0; }
+.rail-stat { display: flex; justify-content: space-between; gap: var(--space-3);
+             padding: 5px 0; font-size: var(--font-size-sm); }
+.rail-stat span:last-child { font-weight: var(--font-weight-semibold);
+                             font-variant-numeric: tabular-nums; color: var(--neutral-900); }
+.stack { display: flex; flex-direction: column; gap: var(--space-3); }
+.row { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
+.form-label {
+    display: block; font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold);
+    color: var(--neutral-600); margin-bottom: 4px; text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.view { display: none; }
+.view.is-active { display: block; }
+
+/* The topbar chip counts catalogue updates, not kilometres. */
+#savings-counter .savings-value { font-size: var(--font-size-sm); }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Reduced motion — keep the state cue, drop the movement
+ * ─────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .kpi-tile, .skel { animation: none; }
+    .kpi-tile:hover { transform: none; }
+    .btn:active { transform: none; }
+    .mpane { transition: opacity 160ms var(--ease-out); }
+    .mpane.is-swapping-pane { transform: none; }
+    .flying-octagon { animation-duration: 0.01ms; }
+    .topnav-savings.counter-bump { animation: none; }
+}

@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/
+AI_Training_Data/
+.pytest_cache/

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">
+  <Styles>
+    <Style ss:ID="Default" ss:Name="Normal">
+      <Alignment ss:Vertical="Bottom"/>
+      <Borders/>
+      <Font/>
+      <Interior/>
+      <NumberFormat/>
+      <Protection/>
+    </Style>
+    <Style ss:ID="s24">
+      <Alignment ss:Horizontal="Center" ss:Vertical="Bottom"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+      </Borders>
+      <Font x:Family="Swiss" ss:Bold="1"/>
+      <Interior ss:Color="#C0C0C0" ss:Pattern="Solid"/>
+      <NumberFormat/>
+      <Protection/>
+    </Style>
+    <Style ss:ID="s25">
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+      </Borders>
+    </Style>
+  </Styles>
+  <Worksheet ss:Name="Publication List">
+    <Table>
+      <Column ss:StyleID="s25" ss:AutoFitWidth="0" ss:Width="122.25"/>
+      <Column ss:StyleID="s25" ss:AutoFitWidth="0" ss:Width="96.75"/>
+      <Column ss:StyleID="s25" ss:AutoFitWidth="0" ss:Width="392.25"/>
+      <Row>
+        <Cell ss:StyleID="s24">
+          <Data ss:Type="String">Reference</Data>
+        </Cell>
+        <Cell ss:StyleID="s24">
+          <Data ss:Type="String">Date</Data>
+        </Cell>
+        <Cell ss:StyleID="s24">
+          <Data ss:Type="String">Title</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 131-3:2018+A1:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-08-06</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Ladders - Part 3: Marking and user instructions</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 131-6:2019+A1:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-08-06</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Ladders - Part 6: Telescopic ladders</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 131-1:2015+A2:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-08-06</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Ladders - Part 1: Terms, types, functional sizes</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 131-2:2010+A3:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-08-06</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Ladders - Part 2: Requirements, testing, marking</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 131-4:2020+A1:2025</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2025-08-06</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Ladders - Part 4: Single or multiple hinge-joint ladders</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 131-7:2013</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2013-07-10</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Ladders - Part 7: Mobile ladders with platform</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 14975:2006+A1:2010</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2010-07-07</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Loft ladders - Requirements, marking and testing</Data>
+        </Cell>
+      </Row>
+      <Row>
+        <Cell>
+          <Data ss:Type="String">EN 14183:2003</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">2003-12-17</Data>
+        </Cell>
+        <Cell>
+          <Data ss:Type="String">Step stools</Data>
+        </Cell>
+      </Row>
+    </Table>
+  </Worksheet>
+</Workbook>
