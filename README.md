@@ -162,7 +162,11 @@ committee.
 Authorised employees subscribe **per standard**, **per committee (TC/SC)**,
 **per standards body** or **per keyword**. After each run, every subscriber with
 matching changes receives one digest email. A subscription to `EN 581-1` also
-matches `EN 581-1:2026`, so subscribers follow a standard across versions.
+matches `EN 581-1:2026`, so subscribers follow a standard across versions;
+`F1169` matches `ASTM F1169-25`, and committee `F15` matches `F15.42`. The first
+capture of a newly added source is its whole catalogue, so it is not alerted.
+Set `PUBLIC_BASE_URL` to link the digest to the portal (on App Service the
+site's own host name is used automatically).
 
 `EMAIL_BACKEND=console` (the default) writes each alert to `data/outbox/`
 instead of sending it, so the flow is fully demonstrable offline. Set
@@ -393,7 +397,7 @@ app/
   routers/           standards, sources, runs, subscriptions, users, export, training
   ds/                CPS CoE Design System v1.1, vendored verbatim (served at /ds)
   static/            index.html (app shell), app.css, app.js, logo.png
-tests/               87 tests, including every worked example from the specification.
+tests/               97 tests, including every worked example from the specification.
                      Extraction is stubbed with bundled sample payloads so the
                      suite never touches the network — the real parsers still run.
 ```

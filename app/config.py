@@ -91,6 +91,8 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     email_from: str = "standards-monitor@tuvsud.com"
     outbox_dir: Path = BASE_DIR / "data" / "outbox"
+    # Portal address used in alert emails; on App Service WEBSITE_HOSTNAME is used if unset.
+    public_base_url: str = ""
 
     # --- Access control ----------------------------------------------------
     # Bootstrap administrator created on first startup.

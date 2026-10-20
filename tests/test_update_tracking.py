@@ -304,3 +304,51 @@ def test_browser_sources_fall_back_to_https_when_no_browser_can_start():
     extractor = WSTDAExtractor(SimpleNamespace(url="https://wstda.com/page/products",
                                                fetch_strategy="browser", options={}))
     assert extractor.fetch(Ctx()) == b"<html>listing</html>"
+
+
+# --- subscriptions -----------------------------------------------------------
+
+def test_a_new_sources_first_capture_is_not_alerted_but_later_changes_are(
+    clean_db, cen_source, catalogue
+):
+    from app.models import AlertLog, Subscription, User
+
+    user = User(email="alerts@example.com", api_key="k-alerts", role="user")
+    clean_db.add(user)
+    clean_db.flush()
+    clean_db.add(Subscription(user_id=user.id, type="body", value="CEN"))
+    clean_db.commit()
+
+    catalogue.rows = [("EN 581-1:2017", "2017-03-08"), ("EN 1130:2019", "2019-11-27")]
+    baseline = run_extraction(clean_db)
+    assert baseline.added_count == 2 and baseline.alerts_sent == 0
+
+    catalogue.rows = [("EN 581-1:2026", "2026-05-20"), ("EN 1130:2019", "2019-11-27")]
+    later = run_extraction(clean_db)
+    assert later.alerts_sent == 1
+    body = clean_db.query(AlertLog).filter_by(run_id=later.id).one().body
+    assert "EN 581-1:2026" in body and "replaced by EN 581-1:2026" in body
+    assert "Subscriptions page" in body and "/api/subscriptions" not in body
+
+
+@pytest.mark.parametrize(
+    ("kind", "value", "standard_id", "tc_code", "body", "expected"),
+    [
+        ("standard", "F1169", "ASTM F1169-25", "F15.18", "ASTM", True),
+        ("standard", "ASTM F1169", "ASTM F1169-25", "F15.18", "ASTM", True),
+        ("standard", "F116", "ASTM F1169-25", "F15.18", "ASTM", False),
+        ("standard", "EN 16121", "EN 16121:2023/AC:2025", "CEN/TC 207", "CEN", True),
+        ("standard", "EN 581-1", "EN 581-1:2026", "CEN/TC 207", "CEN", True),
+        ("standard", "EN 581-2", "EN 581-1:2026", "CEN/TC 207", "CEN", False),
+        ("committee", "F15", "ASTM F1169-25", "F15.18", "ASTM", True),
+        ("committee", "F15.1", "ASTM F1169-25", "F15.18", "ASTM", False),
+        ("committee", "ISO/TC 29", "ISO 525:2020", "ISO/TC 29/SC 5", "ISO", True),
+    ],
+)
+def test_subscription_matching(kind, value, standard_id, tc_code, body, expected):
+    from app.services.notify import subscription_matches
+
+    change = SimpleNamespace(standard_id=standard_id, tc_code=tc_code, title_en=None, details={})
+    source = SimpleNamespace(body=body, tc_code=tc_code, title=None)
+    subscription = SimpleNamespace(type=kind, value=value)
+    assert subscription_matches(subscription, change, source) is expected

@@ -8,6 +8,7 @@ subscribed area they receive one digest email.
 from __future__ import annotations
 
 import logging
+import os
 import smtplib
 from datetime import datetime, timezone
 from email.message import EmailMessage
@@ -17,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.extractors.base import normalize_standard_id
+from app.extractors.references import describe_reference
 from app.models import (
     SUBSCRIPTION_BODY,
     SUBSCRIPTION_COMMITTEE,
@@ -70,14 +72,27 @@ def subscription_matches(subscription: Subscription, change: ChangeRecord, sourc
     if subscription.type == SUBSCRIPTION_STANDARD:
         wanted = normalize_standard_id(value)
         actual = normalize_standard_id(change.standard_id or "")
+        family = (change.details or {}).get("family") or describe_reference(
+            change.standard_id or "", source.body
+        ).family
+        candidates = {actual, normalize_standard_id(family)}
+        # ASTM/ASME IDs carry the body prefix ("ASTM F1169-25"); "F1169" must still match.
+        prefix = f"{(source.body or '').upper()} "
+        candidates |= {c[len(prefix):] for c in candidates if c.startswith(prefix)}
         # "EN 581-1" also matches "EN 581-1:2026" so that subscribers follow a
         # standard across its versions.
-        return actual == wanted or actual.startswith((f"{wanted}:", f"{wanted}-", f"{wanted}/"))
+        return any(
+            c == wanted or c.startswith((f"{wanted}:", f"{wanted}-", f"{wanted}/"))
+            for c in candidates
+        )
 
     if subscription.type == SUBSCRIPTION_COMMITTEE:
         wanted = value.upper()
         candidates = [(change.tc_code or "").upper(), (source.tc_code or "").upper()]
-        return any(c == wanted or c.startswith(f"{wanted}/") for c in candidates if c)
+        # "ISO/TC 29" covers "ISO/TC 29/SC 5"; "F15" covers ASTM's "F15.42".
+        return any(
+            c == wanted or c.startswith((f"{wanted}/", f"{wanted}.")) for c in candidates if c
+        )
 
     if subscription.type == SUBSCRIPTION_BODY:
         return (source.body or "").upper() == value.upper()
@@ -118,7 +133,12 @@ def dispatch_alerts(db: Session, run: ExtractionRun, *, session_id: str | None =
             .where(ChangeRecord.run_id == run.id)
         )
     )
-    changes = [(change, source) for change, source in rows]
+    changes = [
+        (change, source)
+        for change, source in rows
+        # A source's first capture is its whole catalogue, not news.
+        if not (change.details or {}).get("baseline")
+    ]
     if not changes:
         return 0
 
@@ -198,13 +218,23 @@ def render_digest(
         lines.extend(entries)
         lines.append("")
 
+    portal = portal_url("#/subscriptions")
     lines += [
         "You are receiving this because of your subscriptions in the Automated",
-        "Standard Update Monitoring database. Manage them at /api/subscriptions.",
+        "Standard Update Monitoring portal. Review or change them on the",
+        f"Subscriptions page: {portal}" if portal else "Subscriptions page of the portal.",
         "",
         "-- TUV SUD Standards Monitor",
     ]
     return "\n".join(lines)
+
+
+def portal_url(fragment: str = "") -> str | None:
+    """Public address of the portal; App Service sets WEBSITE_HOSTNAME itself."""
+    base = settings.public_base_url or (
+        f"https://{os.environ['WEBSITE_HOSTNAME']}" if os.environ.get("WEBSITE_HOSTNAME") else ""
+    )
+    return f"{base.rstrip('/')}/{fragment}" if base else None
 
 
 def send_email(to_address: str, subject: str, body: str) -> tuple[str, str | None]:
