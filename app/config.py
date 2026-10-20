@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Automated Standard Update Monitoring"
-    app_version: str = "1.0.0"
+    app_version: str = "1.1.0"
 
     # --- Storage -----------------------------------------------------------
     database_url: str = f"sqlite:///{BASE_DIR / 'data' / 'standards.db'}"
@@ -33,6 +33,23 @@ class Settings(BaseSettings):
         "Mozilla/5.0 (compatible; TUVSUD-StandardMonitor/1.0; +https://www.tuvsud.com)"
     )
     live_fetch_delay_seconds: float = 1.5  # be polite between requests
+
+    # --- Fetch reliability -------------------------------------------------
+    # Transient failures (timeouts, connection resets, 429, 5xx, browser
+    # crashes) are retried with exponential backoff; permanent ones (404, 403,
+    # an interstitial check that never clears) fail at once.
+    fetch_max_attempts: int = 3
+    fetch_retry_backoff_seconds: float = 3.0
+    # When the headless browser cannot start on this host, try plain HTTPS
+    # before failing a browser-backed source.
+    browser_http_fallback: bool = True
+
+    # --- Withdrawal validation ---------------------------------------------
+    # A run that would withdraw more than this share of a source's current
+    # standards is treated as a suspect extraction and not applied, unless the
+    # administrator explicitly allows it for that run.
+    max_withdrawal_ratio: float = 0.5
+    withdrawal_guard_min_current: int = 10
 
     # --- Browser-assisted fetching -----------------------------------------
     # Used by sources whose listing is built client-side or served behind an
@@ -50,12 +67,19 @@ class Settings(BaseSettings):
     browser_content_wait_seconds: float = 20.0
 
     # --- Scheduling --------------------------------------------------------
+    # These are the defaults until an administrator saves a schedule in the
+    # portal (Runs > Schedule); the saved schedule then takes precedence.
     scheduler_enabled: bool = False
     # Monitoring frequency is "TBD" in the spec; monthly on the 1st at 02:00 is
     # the default and can be changed without touching code.
     schedule_cron_day: str = "1"
     schedule_cron_hour: str = "2"
     schedule_cron_minute: str = "0"
+    # Coverage targets: how many examples of each change type the monitoring
+    # period should collect before it is considered sufficient.
+    coverage_target_added: int = 5
+    coverage_target_updated: int = 5
+    coverage_target_withdrawn: int = 5
 
     # --- Email alerts ------------------------------------------------------
     # "console" writes alerts to data/outbox/ instead of sending them.

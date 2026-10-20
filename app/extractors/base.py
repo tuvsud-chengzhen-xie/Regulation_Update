@@ -17,11 +17,14 @@ Two things every parser must do:
 
 from __future__ import annotations
 
+import logging
 import re
 import unicodedata
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 SAMPLE_DIR = Path(__file__).resolve().parent / "fixtures"
 
@@ -202,16 +205,42 @@ class BaseExtractor(ABC):
         return getattr(self.source, "fetch_strategy", None) or self.fetch_strategy
 
     def fetch(self, ctx) -> bytes:
-        """Download the raw payload using this source's transport."""
+        """Download the raw payload using this source's transport.
+
+        If the headless browser cannot start on this host, a browser-backed
+        source is tried once over plain HTTPS before it is given up on, so a
+        missing Chromium only costs the sites that truly need one.
+        """
+        from app.config import settings
+        from app.extractors.fetching import CAUSE_BROWSER_UNAVAILABLE, FetchError
+
         url = self.target_url()
-        if self.strategy() == "browser":
+        if self.strategy() != "browser":
+            return ctx.http_get(url, body=self.body, headers=self.extra_headers)
+        try:
             return ctx.browser_get(
                 url,
                 body=self.body,
                 wait_for=self.browser_wait_for,
                 wait_until=self.browser_wait_until,
             )
-        return ctx.http_get(url, body=self.body, headers=self.extra_headers)
+        except FetchError as exc:
+            if exc.cause != CAUSE_BROWSER_UNAVAILABLE or not settings.browser_http_fallback:
+                raise
+            logger.warning("%s: browser unavailable, falling back to plain HTTPS for %s",
+                           self.body, url)
+            try:
+                return ctx.http_get(
+                    url, body=self.body, headers=self.extra_headers, transport="http-fallback"
+                )
+            except FetchError as fallback_exc:
+                raise FetchError(
+                    f"{exc} Plain-HTTPS fallback also failed: {fallback_exc}",
+                    cause=CAUSE_BROWSER_UNAVAILABLE,
+                    url=url,
+                    http_status=fallback_exc.http_status,
+                    transient=False,
+                ) from fallback_exc
 
     def sample_bytes(self, name: str | None = None) -> bytes:
         """Read a bundled sample payload. Used by the parser unit tests."""

@@ -2,12 +2,23 @@
 
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
 
-from app.extractors.registry import SUPPORTED_BODIES
-from app.models import STATUS_CURRENT, Source, Standard
-from app.schemas import SourceIn, SourceOut, SourceUpdate
+from app.extractors.registry import ALLOWED_HOSTS, DEFAULT_FETCH_STRATEGY, SUPPORTED_BODIES
+from app.models import (
+    FETCH_HTTP,
+    POLICY_SOURCE_DATE,
+    POLICY_YEAR_THEN_STAMP,
+    STATUS_CURRENT,
+    ExtractionRun,
+    Source,
+    SourceRunResult,
+    Standard,
+)
+from app.schemas import SourceImportResult, SourceIn, SourceOut, SourceUpdate
 from app.security import AdminUser, CurrentUser, DbSession
 
 router = APIRouter(prefix="/api/sources", tags=["sources"])
@@ -25,7 +36,72 @@ def _to_out(db, source: Source) -> SourceOut:
     out = SourceOut.model_validate(source)
     out.standard_count = total or 0
     out.current_count = current or 0
+
+    recent = list(
+        db.execute(
+            select(SourceRunResult, ExtractionRun.started_at)
+            .join(ExtractionRun, ExtractionRun.id == SourceRunResult.run_id)
+            .where(SourceRunResult.source_id == source.id)
+            .order_by(SourceRunResult.id.desc())
+            .limit(20)
+        ).all()
+    )
+    if recent:
+        last, _ = recent[0]
+        out.last_status = last.status
+        out.last_error = last.error
+        out.last_error_cause = last.error_cause
+        for result, _ in recent:
+            if result.status != "failed":
+                break
+            out.consecutive_failures += 1
+        out.last_success_at = next(
+            (started for result, started in recent if result.status == "success"), None
+        )
     return out
+
+
+def _validate_url(body: str, url: str) -> None:
+    """Only fetch the standards bodies' own sites (no SSRF via a source URL)."""
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise HTTPException(status_code=422, detail="Source URL must be an https:// URL.")
+    allowed = ALLOWED_HOSTS.get(body.upper(), set())
+    if parsed.hostname.lower() not in allowed:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{body.upper()} sources must point at {', '.join(sorted(allowed))}; "
+            f"got {parsed.hostname}.",
+        )
+
+
+def _create(db, payload: SourceIn) -> Source:
+    body = payload.body.upper()
+    if body not in SUPPORTED_BODIES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"No extractor for body '{payload.body}'. Supported: {SUPPORTED_BODIES}",
+        )
+    _validate_url(body, payload.url)
+    existing = db.scalar(
+        select(Source).where(Source.body == body, Source.tc_code == payload.tc_code.strip())
+    )
+    if existing is not None:
+        raise HTTPException(status_code=409, detail=f"{body} {payload.tc_code} already exists")
+
+    values = payload.model_dump()
+    values["body"] = body
+    values["tc_code"] = payload.tc_code.strip()
+    if "publish_date_policy" not in payload.model_fields_set:
+        values["publish_date_policy"] = (
+            POLICY_SOURCE_DATE if body == "CEN" else POLICY_YEAR_THEN_STAMP
+        )
+    values["fetch_strategy"] = payload.fetch_strategy or DEFAULT_FETCH_STRATEGY.get(body, FETCH_HTTP)
+    values["id_prefix"] = payload.id_prefix or {"ASTM": "ASTM", "ASME": "ASME"}.get(body)
+    source = Source(**values)
+    db.add(source)
+    db.flush()
+    return source
 
 
 @router.get("", response_model=list[SourceOut])
@@ -46,22 +122,32 @@ def list_bodies(user: CurrentUser) -> list[str]:
 
 @router.post("", response_model=SourceOut, status_code=201)
 def create_source(payload: SourceIn, db: DbSession, admin: AdminUser) -> SourceOut:
-    if payload.body.upper() not in SUPPORTED_BODIES:
-        raise HTTPException(
-            status_code=422,
-            detail=f"No extractor for body '{payload.body}'. Supported: {SUPPORTED_BODIES}",
-        )
-    existing = db.scalar(
-        select(Source).where(Source.body == payload.body.upper(), Source.tc_code == payload.tc_code)
-    )
-    if existing is not None:
-        raise HTTPException(status_code=409, detail="Source already exists")
-
-    source = Source(**{**payload.model_dump(), "body": payload.body.upper()})
-    db.add(source)
+    source = _create(db, payload)
     db.commit()
     db.refresh(source)
     return _to_out(db, source)
+
+
+@router.post(
+    "/import",
+    response_model=SourceImportResult,
+    summary="Add several committees at once (administrators only)",
+)
+def import_sources(payload: list[SourceIn], db: DbSession, admin: AdminUser) -> SourceImportResult:
+    """Existing body + TC/SC pairs are skipped; invalid rows are reported."""
+    created: list[Source] = []
+    skipped: list[str] = []
+    errors: list[str] = []
+    for item in payload:
+        label = f"{item.body.upper()} {item.tc_code}"
+        try:
+            created.append(_create(db, item))
+        except HTTPException as exc:
+            (skipped if exc.status_code == 409 else errors).append(f"{label}: {exc.detail}")
+    db.commit()
+    return SourceImportResult(
+        created=[_to_out(db, source) for source in created], skipped=skipped, errors=errors
+    )
 
 
 @router.patch("/{source_id}", response_model=SourceOut)
@@ -70,7 +156,10 @@ def update_source(source_id: int, payload: SourceUpdate, db: DbSession,
     source = db.get(Source, source_id)
     if source is None:
         raise HTTPException(status_code=404, detail="Source not found")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    changes = payload.model_dump(exclude_unset=True)
+    if changes.get("url"):
+        _validate_url(source.body, changes["url"])
+    for field, value in changes.items():
         setattr(source, field, value)
     db.commit()
     db.refresh(source)

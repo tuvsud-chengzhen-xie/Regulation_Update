@@ -26,6 +26,13 @@ from app.extractors.base import (
 
 SS_NS = "{urn:schemas-microsoft-com:office:spreadsheet}"
 _HEADER_TOKENS = {"reference", "date", "title"}
+# EN 16121:2023, EN 16121:2023/AC:2025, EN 1335-1:2020+A1:2022, CEN/TS 18231:2026,
+# CEN/TR 14073-1:2004, EN ISO 8124-1:2022, CEN ISO/TS 16976-1:2015, CWA 17145-1:2017,
+# CEN/CLC/TR 17602:2021, HD 1000:1988
+CEN_REF_RE = re.compile(
+    r"^(?:PR)?(?:[A-Z]{2,5}(?:/[A-Z]{2,5})*\s+)+(?:GUIDE\s+)?\d[\w.\-]*\s*:\s*\d{4}\b",
+    re.IGNORECASE,
+)
 
 
 class CENExtractor(BaseExtractor):
@@ -60,6 +67,18 @@ class CENExtractor(BaseExtractor):
                     "missing_reference",
                     "Export row carries a title or date but no standard reference.",
                     raw=" | ".join(cells),
+                    location=where,
+                )
+                continue
+            if not CEN_REF_RE.match(reference):
+                # Never let an unrecognised cell become a "standard": it would
+                # be added as Current and later withdrawn as noise.
+                result.fail(
+                    "unrecognised_reference",
+                    "The Reference column does not hold a CEN deliverable reference "
+                    "(e.g. EN 16121:2023, EN 16121:2023/AC:2025, CEN/TS 18231:2026).",
+                    raw=" | ".join(cells),
+                    standard_id=reference,
                     location=where,
                 )
                 continue
@@ -98,6 +117,15 @@ class CENExtractor(BaseExtractor):
     # --- payload shapes ----------------------------------------------------
     def _rows(self, payload: bytes) -> list[list[str]]:
         head = payload[:512].lstrip()
+        lowered = head[:256].lower()
+        if lowered.startswith((b"<!doctype html", b"<html")) or b"<html" in lowered:
+            # CEN answers a stale or altered export link with an HTML page and
+            # HTTP 200; parsing that as delimited text would invent "standards".
+            raise ExtractorError(
+                "CEN returned an HTML page instead of the XLS export. The export link "
+                "(including its cs= checksum) may have expired: copy a fresh 'XLS export' "
+                "link from the committee page and update this source."
+            )
         if head.startswith(b"<?xml") or b"urn:schemas-microsoft-com:office:spreadsheet" in head:
             return _spreadsheetml_rows(payload)
         if head.startswith(b"PK"):  # .xlsx

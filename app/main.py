@@ -14,7 +14,8 @@ from app.config import settings
 from app.db import SessionLocal, init_db
 from app.routers import export, runs, sources, standards, subscriptions, training, users
 from app.seed import bootstrap
-from app.services.scheduler import shutdown_scheduler, start_scheduler
+from app.services.ingest import backfill_reference_metadata, recover_interrupted_runs
+from app.services.scheduler import next_run_time, shutdown_scheduler, start_scheduler
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)-8s %(name)s: %(message)s"
@@ -33,7 +34,10 @@ the changes, and alerts subscribed authorised users.
 
 **Update rule** — standards are compared on the full *Standard ID + Version*:
 a record that disappears from its source becomes `Withdrawn`; a record that
-appears for the first time is added as `Current`.
+appears for the first time is added as `Current`. Each change is classified
+(`added`, `updated` — new edition/amendment/corrigendum of a known standard,
+`withdrawn`, `superseded`, `reinstated`, `modified`) and linked to the
+publications it replaces or is replaced by.
 
 **Authentication** — every request carries an individual API key in the
 `X-API-Key` header. Administrator-only: user and source management, triggering
@@ -51,6 +55,10 @@ async def lifespan(_: FastAPI):
     try:
         info = bootstrap(db)
         logger.info("bootstrap: admin=%s new sources=%s", info["admin"], info["sources_created"])
+        recover_interrupted_runs(db)
+        filled = backfill_reference_metadata(db)
+        if filled:
+            logger.info("backfilled publication type/family on %d standard(s)", filled)
     finally:
         db.close()
     start_scheduler()
@@ -87,7 +95,7 @@ def health() -> dict:
         "app": settings.app_name,
         "version": settings.app_version,
         "extraction_mode": "live",  # extraction is always live; no replay mode
-        "scheduler_enabled": settings.scheduler_enabled,
+        "scheduler_enabled": next_run_time() is not None,
         "email_backend": settings.email_backend,
         "training_capture": settings.training_capture_enabled,
     }

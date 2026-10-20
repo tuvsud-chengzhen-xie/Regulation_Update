@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="/ds/shell.css">
 <link rel="stylesheet" href="/ds/nudges.css">
 <!-- App-specific styles last so they can override design-system defaults. -->
-<link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="/static/app.css?v=1.1.0">
 </head>
 <body>
 
@@ -104,6 +104,15 @@
                 <option>Current</option>
                 <option>Withdrawn</option>
             </select>
+            <select id="f-change" class="field" aria-label="Last change">
+                <option value="">Any last change</option>
+                <option value="added">New standard</option>
+                <option value="updated">Updated (edition / A / AC)</option>
+                <option value="superseded">Superseded</option>
+                <option value="withdrawn">Withdrawn</option>
+                <option value="reinstated">Reinstated</option>
+                <option value="modified">Details changed</option>
+            </select>
             <span class="spacer"></span>
             <span class="count muted" id="std-count"></span>
         </div>
@@ -128,8 +137,20 @@
                 <button class="btn btn-sm" id="prev">← Previous</button>
                 <button class="btn btn-sm" id="next">Next →</button>
                 <span class="count" id="std-page"></span>
+                <span class="spacer"></span>
+                <span class="count muted">Click a row to see its history across runs.</span>
             </div>
         </div>
+    </div>
+
+    <!-- Traceability for one record: its changes and its editions/amendments/corrigenda. -->
+    <div class="card" id="std-detail" hidden>
+        <div class="card-head">
+            <h2 id="std-detail-title">History</h2>
+            <span class="spacer"></span>
+            <button class="btn btn-sm btn-ghost" id="std-detail-close">Close</button>
+        </div>
+        <div id="std-detail-body"></div>
     </div>
 </main>
 
@@ -139,7 +160,8 @@
     <div class="page-head">
         <div class="head-text">
             <h1>Change log</h1>
-            <p class="sub">Every status change the update rule has applied, newest first.</p>
+            <p class="sub">Every change the update rule has applied, newest first — with the
+               publication each one replaces or is replaced by.</p>
         </div>
     </div>
 
@@ -149,14 +171,15 @@
     <div class="card">
         <div data-role="result" id="chg-result">
             <div class="tbl-wrap">
-                <table class="tbl" id="t-changes">
+                <table class="tbl" id="t-changes" style="min-width:1120px">
                     <colgroup>
-                        <col style="width:70px"><col style="width:120px"><col style="width:250px">
-                        <col style="width:150px"><col><col style="width:180px"><col style="width:150px">
+                        <col style="width:64px"><col style="width:110px"><col style="width:230px">
+                        <col style="width:130px"><col><col style="width:250px">
+                        <col style="width:170px"><col style="width:136px">
                     </colgroup>
                     <thead><tr>
                         <th class="num">Run</th><th>Change</th><th>Standard ID + Version</th>
-                        <th>TC / SC code</th><th>English title</th>
+                        <th>TC / SC code</th><th>English title</th><th>Relation</th>
                         <th>Status change</th><th>When (UTC)</th>
                     </tr></thead>
                     <tbody></tbody>
@@ -181,17 +204,21 @@
             <div class="card">
                 <div data-role="result" id="runs-result">
                     <div class="tbl-wrap">
-                        <table class="tbl" id="t-runs" style="min-width:756px">
+                        <table class="tbl" id="t-runs" style="min-width:900px">
                             <colgroup>
                                 <col style="width:58px"><col style="width:132px"><col style="width:80px">
-                                <col style="width:92px"><col style="width:88px"><col style="width:70px">
-                                <col style="width:92px"><col style="width:64px"><col style="width:70px">
+                                <col style="width:86px"><col style="width:80px"><col style="width:56px">
+                                <col style="width:68px"><col style="width:80px"><col style="width:84px">
+                                <col style="width:76px"><col style="width:60px"><col style="width:58px">
                             </colgroup>
                             <thead><tr>
                                 <th class="num">Run</th><th>Started (UTC)</th>
                                 <th>Trigger</th><th>Status</th><th class="num">Extracted</th>
-                                <th class="num">Added</th><th class="num">Withdrawn</th>
-                                <th class="num">Failed</th><th class="num">Alerts</th>
+                                <th class="num">New</th><th class="num">Updated</th>
+                                <th class="num">Withdrawn</th><th class="num">Superseded</th>
+                                <th class="num" title="Sources that could not be fetched">Src failed</th>
+                                <th class="num" title="Catalogue entries seen but not captured">Lost</th>
+                                <th class="num">Alerts</th>
                             </tr></thead>
                             <tbody></tbody>
                         </table>
@@ -204,9 +231,14 @@
             <div class="rail-card">
                 <header class="rail-card-head"><span class="rail-card-eyebrow">Trigger a run</span></header>
                 <p>Every source is fetched live from its own site. ISO, BIFMA, ALI and
-                   WSTDA are read through a headless browser; the rest over plain HTTPS.</p>
+                   WSTDA are read through a headless browser; the rest over plain HTTPS.
+                   The run continues in the background — you can leave this page.</p>
                 <div class="stack">
+                    <label class="check" title="Normally a source that would lose more than half of its current standards in one run is held back as a suspect extraction.">
+                        <input type="checkbox" id="run-allow-mass"> Allow mass withdrawals
+                    </label>
                     <button class="btn btn-primary" id="btn-run-live">Run monitoring now</button>
+                    <div id="run-progress" class="muted" hidden></div>
                 </div>
             </div>
             <div class="rail-card">
@@ -220,6 +252,46 @@
             <div class="rail-card">
                 <header class="rail-card-head"><span class="rail-card-eyebrow">Schedule</span></header>
                 <div id="rail-schedule"><p class="muted">Loading…</p></div>
+                <form class="stack" id="schedule-form" hidden>
+                    <label class="check"><input type="checkbox" id="sch-enabled"> Run on a schedule</label>
+                    <div class="row">
+                        <select id="sch-frequency" class="field" aria-label="Frequency">
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="biweekly">Every 2 weeks</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="cron">Custom (crontab)</option>
+                        </select>
+                        <input id="sch-time" class="field" type="time" aria-label="Time (UTC)" value="02:00">
+                    </div>
+                    <div class="row" data-sch="weekly biweekly">
+                        <select id="sch-dow" class="field" aria-label="Day of week">
+                            <option value="mon">Monday</option><option value="tue">Tuesday</option>
+                            <option value="wed">Wednesday</option><option value="thu">Thursday</option>
+                            <option value="fri">Friday</option><option value="sat">Saturday</option>
+                            <option value="sun">Sunday</option>
+                        </select>
+                    </div>
+                    <div class="row" data-sch="monthly">
+                        <label class="form-label" for="sch-dom">Day of month</label>
+                        <input id="sch-dom" class="field" type="number" min="1" max="28" value="1">
+                    </div>
+                    <div data-sch="cron">
+                        <input id="sch-cron" class="field" style="width:100%" placeholder="0 2 * * 1  (min hour day month weekday)">
+                    </div>
+                    <div>
+                        <label class="form-label">Monitoring window (optional)</label>
+                        <div class="row">
+                            <input id="sch-start" class="field" type="date" aria-label="From">
+                            <input id="sch-end" class="field" type="date" aria-label="Until">
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-primary" type="submit">Save schedule</button>
+                </form>
+            </div>
+            <div class="rail-card">
+                <header class="rail-card-head"><span class="rail-card-eyebrow">Examples collected</span></header>
+                <div id="rail-coverage"><p class="muted">Loading…</p></div>
             </div>
         </aside>
     </div>
@@ -274,6 +346,36 @@
             </div>
         </div>
     </div>
+
+    <div class="card">
+        <div class="card-head">
+            <h2>Source fetch failures</h2>
+            <span class="spacer"></span>
+            <span class="count muted" id="fail-count"></span>
+        </div>
+        <p class="muted" style="margin:0 0 var(--space-3);font-size:var(--font-size-sm)">
+            Each source that could not be read, why, and every attempt made. Transient
+            causes (timeouts, 5xx, rate limits, browser crashes) are retried automatically;
+            permanent ones (404, access refused, an interstitial that never clears) are not.
+        </p>
+        <div data-role="result" id="fail-result">
+            <div class="tbl-wrap">
+                <table class="tbl" id="t-failures" style="min-width:1080px">
+                    <colgroup>
+                        <col style="width:62px"><col style="width:170px"><col style="width:92px">
+                        <col style="width:220px"><col style="width:64px"><col style="width:76px">
+                        <col><col style="width:136px">
+                    </colgroup>
+                    <thead><tr>
+                        <th class="num">Run</th><th>Source</th><th>Transport</th>
+                        <th>Cause</th><th class="num">HTTP</th><th class="num">Attempts</th>
+                        <th>Error</th><th>Last success (UTC)</th>
+                    </tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </main>
 
 
@@ -289,19 +391,37 @@
     <div class="chips" id="source-chips"></div>
     <div class="activechips" data-role="activechips" id="src-activechips"></div>
 
+    <div class="card" id="src-add-card" hidden>
+        <div class="card-head"><h2>Add a committee or subcommittee</h2></div>
+        <form class="row" id="src-add">
+            <select id="src-body" class="field" aria-label="Standards body" required></select>
+            <input id="src-tc" class="field" placeholder="TC / SC code, e.g. ISO/TC 83" required>
+            <input id="src-title" class="field" placeholder="Group name">
+            <input id="src-url" class="field" style="flex:1;min-width:280px" type="url"
+                   placeholder="https://… catalogue / export URL" required>
+            <button class="btn btn-primary" type="submit">Add source</button>
+        </form>
+        <p class="muted" style="margin:var(--space-2) 0 0;font-size:var(--font-size-sm)">
+            CEN: copy the committee's <i>XLS export</i> link (it carries a <code>cs=</code>
+            checksum). ISO: the committee catalogue URL. ASTM: the subcommittee
+            <i>jurisdiction</i> page. Only the bodies' own sites are accepted. Several at
+            once: <code>POST /api/sources/import</code>.
+        </p>
+    </div>
+
     <div class="card">
         <div data-role="result" id="src-result">
             <div class="tbl-wrap">
-                <table class="tbl" id="t-sources">
+                <table class="tbl" id="t-sources" style="min-width:1060px">
                     <colgroup>
-                        <col style="width:84px"><col style="width:186px"><col>
-                        <col style="width:104px"><col style="width:96px">
-                        <col style="width:150px"><col style="width:136px">
+                        <col style="width:84px"><col style="width:150px"><col>
+                        <col style="width:96px"><col style="width:86px">
+                        <col style="width:96px"><col style="width:200px"><col style="width:136px">
                     </colgroup>
                     <thead><tr>
                         <th>Body</th><th>TC / SC code</th><th>Group name</th>
                         <th class="num">Standards</th><th class="num">Current</th>
-                        <th>Transport</th><th>Last run (UTC)</th>
+                        <th>Transport</th><th>Last result</th><th>Last run (UTC)</th>
                     </tr></thead>
                     <tbody></tbody>
                 </table>
@@ -399,8 +519,11 @@
         </div>
         <p class="muted" style="margin:0;font-size:var(--font-size-sm)">
             The workbook's first seven columns are the bilingual headers of
-            <i>Database Format.xlsx</i>, followed by the operational columns, plus
-            <i>Sources</i> and <i>Change Log</i> sheets. Administrators only.
+            <i>Database Format.xlsx</i>, followed by the operational and traceability
+            columns, plus <i>Sources</i>, <i>Change Log</i> and <i>Export Check</i> sheets.
+            Every export is re-read and compared with the database before download.
+            This button exports the whole database; <b>Export Excel</b> on the Standards
+            page exports exactly the filtered list on screen. Administrators only.
         </p>
     </div>
 
@@ -426,6 +549,6 @@
 
 <script src="/ds/nudges.js"></script>
 <script src="/ds/shell.js"></script>
-<script src="/static/app.js"></script>
+<script src="/static/app.js?v=1.1.0"></script>
 </body>
 </html>

@@ -22,6 +22,9 @@ os.environ.update(
         "EMAIL_BACKEND": "console",
         "SCHEDULER_ENABLED": "false",
         "LIVE_FETCH_DELAY_SECONDS": "0",
+        "FETCH_RETRY_BACKOFF_SECONDS": "0",
+        # Several tests swap a whole catalogue on purpose; the guard has its own test.
+        "MAX_WITHDRAWAL_RATIO": "1.0",
         "BOOTSTRAP_ADMIN_EMAIL": "admin@example.com",
         "BOOTSTRAP_ADMIN_API_KEY": "test-admin-key",
     }

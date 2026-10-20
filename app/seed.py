@@ -25,6 +25,30 @@ CEN_EXPORT = (
     "https://standards.cencenelec.eu/ords/f?p=205:75:::::"
     "FSP_ORG_ID,FSP_LANG_ID,FSP_EXPORT:{org},25,XLS&cs={cs}"
 )
+ASTM_F15 = (
+    "https://www.astm.org/membership-participation/technical-committees/committee-f15/"
+    "subcommittee-f15/jurisdiction-f15{sc}"
+)
+
+# Further ASTM F15 (consumer products) subcommittees. Juvenile and household
+# products are revised often, so these supply a steady stream of new, revised
+# and withdrawn standards for validating the update rule.
+ASTM_F15_EXTRA: list[tuple[str, str]] = [
+    ("09", "Home Playground Equipment"),
+    ("11", "Bed Rails and Expandable Gates"),
+    ("16", "Highchairs and Hook-On Chairs"),
+    ("17", "Carriages, Strollers, Walkers and Stationary Activity Centers"),
+    ("18", "Cribs, Toddler Beds, Play Yards, Bassinets, Cradles and Baby Changing Products"),
+    ("19", "Infant Bedding"),
+    ("20", "Bath Seats"),
+    ("21", "Infant Carriers, Bouncers and Baby Swings"),
+    ("29", "Playground Equipment for Public Use"),
+    ("30", "Bunk Beds"),
+    ("33", "Outdoor Plastic Lawn Furniture"),
+    ("59", "Children's Chair and Stools"),
+    ("66", "Crib Mattresses"),
+    ("77", "Magnets"),
+]
 
 # (body, tc_code, title, url, publish-date policy, options)
 # The transport is not listed here: it comes from the extractor for that body
@@ -96,6 +120,10 @@ SOURCES: list[tuple[str, str, str, str, str, dict]] = [
      "https://www.astm.org/membership-participation/technical-committees/committee-f15/"
      "subcommittee-f15/jurisdiction-f1524",
      POLICY_YEAR_THEN_STAMP, {}),
+    *[
+        ("ASTM", f"F15.{sc}", title, ASTM_F15.format(sc=sc), POLICY_YEAR_THEN_STAMP, {})
+        for sc, title in ASTM_F15_EXTRA
+    ],
 
     # --- ASME designator groups (the four monitored areas) ------------------
     ("ASME", "A112.18.1/CSA B125.1", "Plumbing supply fittings",

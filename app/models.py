@@ -39,10 +39,29 @@ STATUS_WITHDRAWN = "Withdrawn"
 ROLE_ADMIN = "admin"
 ROLE_USER = "user"
 
+# Change types recorded per run. "Standard ID + Version" stays the comparison
+# key; the family ("EN 16121") only labels *why* a row appeared or vanished.
+#   added      - a standard the source had never published before
+#   updated    - a new publication of a known standard: new edition,
+#                amendment (A1) or corrigendum (AC)
+#   withdrawn  - removed from the source with no replacement in the same run
+#   superseded - removed from the source and replaced in the same run
+#   reinstated - a withdrawn standard reappeared
+#   modified   - metadata (title, dates, committee) changed, status unchanged
 CHANGE_ADDED = "added"
+CHANGE_UPDATED = "updated"
 CHANGE_WITHDRAWN = "withdrawn"
+CHANGE_SUPERSEDED = "superseded"
 CHANGE_REINSTATED = "reinstated"
 CHANGE_MODIFIED = "modified"
+CHANGE_TYPES = (
+    CHANGE_ADDED,
+    CHANGE_UPDATED,
+    CHANGE_WITHDRAWN,
+    CHANGE_SUPERSEDED,
+    CHANGE_REINSTATED,
+    CHANGE_MODIFIED,
+)
 
 SUBSCRIPTION_STANDARD = "standard"
 SUBSCRIPTION_COMMITTEE = "committee"
@@ -148,8 +167,18 @@ class Standard(Base):
     status: Mapped[str] = mapped_column(String(32), default=STATUS_CURRENT, index=True)
 
     source_url: Mapped[str | None] = mapped_column(Text)
+    # Reference without edition/amendment/corrigendum, e.g. "EN 16121".
+    family: Mapped[str | None] = mapped_column(String(255), index=True)
+    # Standard, Amendment, Corrigendum, Technical Report, ...
+    publication_type: Mapped[str | None] = mapped_column(String(48))
+    # Traceability between runs (comma-separated Standard IDs).
+    supersedes: Mapped[str | None] = mapped_column(Text)
+    superseded_by: Mapped[str | None] = mapped_column(Text)
     first_seen_run_id: Mapped[int | None] = mapped_column(Integer)
     last_seen_run_id: Mapped[int | None] = mapped_column(Integer)
+    withdrawn_run_id: Mapped[int | None] = mapped_column(Integer)
+    last_change_type: Mapped[str | None] = mapped_column(String(16))
+    last_change_run_id: Mapped[int | None] = mapped_column(Integer)
     withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
@@ -174,11 +203,15 @@ class ExtractionRun(Base):
     is_first_run: Mapped[bool] = mapped_column(Boolean, default=False)
     extracted_count: Mapped[int] = mapped_column(Integer, default=0)
     added_count: Mapped[int] = mapped_column(Integer, default=0)
+    updated_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     withdrawn_count: Mapped[int] = mapped_column(Integer, default=0)
+    superseded_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     reinstated_count: Mapped[int] = mapped_column(Integer, default=0)
     modified_count: Mapped[int] = mapped_column(Integer, default=0)
     #: Catalogue entries seen but not capturable — see ExtractionIssue.
     failed_record_count: Mapped[int] = mapped_column(Integer, default=0)
+    failed_source_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    source_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     alerts_sent: Mapped[int] = mapped_column(Integer, default=0)
     message: Mapped[str | None] = mapped_column(Text)
 
@@ -202,12 +235,18 @@ class SourceRunResult(Base):
     status: Mapped[str] = mapped_column(String(16), default="success")  # success/failed/skipped
     extracted_count: Mapped[int] = mapped_column(Integer, default=0)
     added_count: Mapped[int] = mapped_column(Integer, default=0)
+    updated_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     withdrawn_count: Mapped[int] = mapped_column(Integer, default=0)
+    superseded_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     reinstated_count: Mapped[int] = mapped_column(Integer, default=0)
     modified_count: Mapped[int] = mapped_column(Integer, default=0)
     failed_record_count: Mapped[int] = mapped_column(Integer, default=0)
     fetch_strategy: Mapped[str] = mapped_column(String(16), default=FETCH_HTTP)
     error: Mapped[str | None] = mapped_column(Text)
+    #: Machine-readable failure cause: timeout, dns, http_5xx, challenge, ...
+    error_cause: Mapped[str | None] = mapped_column(String(32))
+    http_status: Mapped[int | None] = mapped_column(Integer)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     duration_ms: Mapped[int] = mapped_column(Integer, default=0)
 
     run: Mapped[ExtractionRun] = relationship(back_populates="results")
@@ -261,6 +300,38 @@ class ExtractionIssue(Base):
 
     run: Mapped[ExtractionRun] = relationship(back_populates="issues")
     source: Mapped[Source] = relationship()
+
+
+class FetchAttempt(Base):
+    """One network request made for a source during a run, successful or not."""
+
+    __tablename__ = "fetch_attempts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    run_id: Mapped[int] = mapped_column(
+        ForeignKey("extraction_runs.id", ondelete="CASCADE"), index=True
+    )
+    source_id: Mapped[int] = mapped_column(ForeignKey("sources.id", ondelete="CASCADE"), index=True)
+    url: Mapped[str] = mapped_column(Text)
+    transport: Mapped[str] = mapped_column(String(24))
+    attempt: Mapped[int] = mapped_column(Integer, default=1)
+    outcome: Mapped[str] = mapped_column(String(16))  # ok / failed
+    cause: Mapped[str | None] = mapped_column(String(32), index=True)
+    http_status: Mapped[int | None] = mapped_column(Integer)
+    duration_ms: Mapped[int] = mapped_column(Integer, default=0)
+    bytes: Mapped[int] = mapped_column(Integer, default=0)
+    message: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class AppSetting(Base):
+    """Runtime configuration editable from the portal (e.g. the run schedule)."""
+
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[dict] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
 
 class Subscription(Base):

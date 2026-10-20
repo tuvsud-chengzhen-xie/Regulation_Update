@@ -29,8 +29,8 @@
         key: localStorage.getItem("sumKey") || "",
         me: null,
         view: "standards",
-        std: { q: "", status: "", body: "", offset: 0, total: 0, mounted: false },
-        chg: { type: "", mounted: false },
+        std: { q: "", status: "", body: "", change: "", offset: 0, total: 0, mounted: false },
+        chg: { type: "", run: "", mounted: false },
         src: { body: "", mounted: false },
         iss: { scope: "", latest: true, mounted: false },
         alerts: [],
@@ -102,6 +102,40 @@
     }
 
     const bodyBadge = (b) => `<span class="srcbadge b-${esc(b)}">${esc(b)}</span>`;
+
+    // ── change vocabulary ────────────────────────────────────────────────────────────────
+    const CHANGE_LABEL = {
+        added: "New", updated: "Updated", withdrawn: "Withdrawn",
+        superseded: "Superseded", reinstated: "Reinstated", modified: "Details",
+    };
+    const PUB_TAG = {
+        Corrigendum: "AC", Amendment: "A", "Technical Report": "TR",
+        "Technical Specification": "TS", "Workshop Agreement": "CWA", Guide: "Guide",
+        "Publicly Available Specification": "PAS",
+    };
+    const pubTag = (type) => PUB_TAG[type]
+        ? `<span class="pubtag" title="${esc(type)}">${esc(PUB_TAG[type])}</span>` : "";
+    const changeBadge = (t) =>
+        `<span class="badge is-${esc(t)}">${esc(CHANGE_LABEL[t] || t)}</span>`;
+
+    /* One phrase tying a change to the publications around it. */
+    function relationText(d) {
+        d = d || {};
+        const list = (a) => (a || []).map(esc).join(", ");
+        if (d.supersededBy && d.supersededBy.length) return `replaced by <b>${list(d.supersededBy)}</b>`;
+        if (d.amends) return `${esc(d.relation || "modification")} to <b>${esc(d.amends)}</b>`;
+        if (d.supersedes && d.supersedes.length) return `replaces <b>${list(d.supersedes)}</b>`;
+        if (d.relation === "new_edition") return `new edition of ${list((d.relatedStandards || []).slice(0, 2))}`;
+        if (d.relation === "consolidated_amendment") return "consolidated with amendment";
+        if (d.relation === "removed_from_source") return "no longer listed by the source";
+        if (d.relation === "reappeared_in_source") return `back in the source (withdrawn in run #${esc(d.withdrawnInRunId)})`;
+        if (d.changes && d.changes.length) {
+            return d.changes.map((c) => `${esc(c.field)}: ${esc(c.old || "—")} → ${esc(c.new)}`).join("; ");
+        }
+        if (d.baseline) return '<span class="muted">first capture of this source</span>';
+        if (d.relation === "new_standard") return "new standard";
+        return '<span class="muted">—</span>';
+    }
 
     // ── topbar chip: catalogue updates caught ────────────────────────
     /* Reuses the design system's `.flying-octagon` / `.counter-bump` CSS.
@@ -248,6 +282,7 @@
         if (state.std.q) params.set("q", state.std.q);
         if (state.std.status) params.set("status", state.std.status);
         if (state.std.body) params.set("body", state.std.body);
+        if (state.std.change) params.set("change_type", state.std.change);
 
         try {
             const [page, stats] = await Promise.all([
@@ -272,22 +307,26 @@
                 $("#std-activechips"),
                 [{ key: "q", label: "Search", value: state.std.q },
                  { key: "status", label: "Status", value: state.std.status },
-                 { key: "body", label: "Body", value: state.std.body }],
+                 { key: "body", label: "Body", value: state.std.body },
+                 { key: "change", label: "Last change", value: CHANGE_LABEL[state.std.change] || "" }],
                 (key) => {
                     state.std[key] = "";
                     if (key === "q") $("#q").value = "";
                     if (key === "status") $("#f-status").value = "";
+                    if (key === "change") $("#f-change").value = "";
                     state.std.offset = 0; loadStandards();
                 },
                 () => {
-                    Object.assign(state.std, { q: "", status: "", body: "", offset: 0 });
-                    $("#q").value = ""; $("#f-status").value = ""; loadStandards();
+                    Object.assign(state.std, { q: "", status: "", body: "", change: "", offset: 0 });
+                    $("#q").value = ""; $("#f-status").value = ""; $("#f-change").value = "";
+                    loadStandards();
                 });
 
             state.std.total = page.total;
             tbody.innerHTML = page.items.length
                 ? page.items.map((r) =>
-                    `<tr><td class="id" title="${esc(r.standard_id)}">${esc(r.standard_id)}</td>
+                    `<tr class="is-clickable" data-std="${r.id}">
+                         <td class="id" title="${esc(r.standard_id)}${r.superseded_by ? " — superseded by " + esc(r.superseded_by) : ""}">${esc(r.standard_id)}${pubTag(r.publication_type)}</td>
                          <td><span class="srcbadge">${esc(r.tc_code)}</span></td>
                          <td title="${esc(r.title_en)}">${dash(r.title_en)}</td>
                          <td>${dash(r.title_zh)}</td>
@@ -298,7 +337,7 @@
                 : "";
             if (!page.items.length) emptyRow(tbody, 7, "No standards match these filters.");
 
-            const filtered = state.std.q || state.std.status || state.std.body;
+            const filtered = state.std.q || state.std.status || state.std.body || state.std.change;
             $("#std-count").innerHTML = filtered
                 ? `<b>${num(page.total)}</b> of ${num(stats.total)} matched`
                 : `<b>${num(page.total)}</b> records`;
@@ -315,75 +354,132 @@
     }
 
     // ── change log ───────────────────────────────────────────────────
-    const CHANGE_TYPES = ["added", "withdrawn", "reinstated", "modified"];
+    const CHANGE_TYPES = ["added", "updated", "withdrawn", "superseded", "reinstated", "modified"];
     let chgSeq = 0;
     async function loadChanges({ first = false } = {}) {
         const seq = ++chgSeq;
         const tbody = $("#t-changes tbody");
-        if (first) skeletonRows(tbody, 7, 10); else pending($("#chg-result"), true);
+        if (first) skeletonRows(tbody, 8, 10); else pending($("#chg-result"), true);
 
+        const params = new URLSearchParams({ limit: 500 });
+        if (state.chg.type) params.set("change_type", state.chg.type);
+        if (state.chg.run) params.set("run_id", state.chg.run);
+        let counts = {};
+        if (state.chg.run) {
+            try { counts = (await api(`/api/runs/${encodeURIComponent(state.chg.run)}/summary`)).changes; }
+            catch (_) { counts = {}; }
+        }
+        if (seq !== chgSeq) return;
         renderScopeChips(
             $("#change-chips"),
             [{ label: "All changes", value: "" }].concat(
-                CHANGE_TYPES.map((t) => ({ label: t[0].toUpperCase() + t.slice(1), value: t }))),
+                CHANGE_TYPES.map((t) => ({ label: CHANGE_LABEL[t], value: t,
+                                           count: state.chg.run ? counts[t] || 0 : undefined }))),
             state.chg.type,
             (value) => { state.chg.type = value; loadChanges(); });
         renderActiveChips(
             $("#chg-activechips"),
-            [{ key: "type", label: "Change", value: state.chg.type }],
-            () => { state.chg.type = ""; loadChanges(); },
-            () => { state.chg.type = ""; loadChanges(); });
+            [{ key: "type", label: "Change", value: CHANGE_LABEL[state.chg.type] || "" },
+             { key: "run", label: "Run", value: state.chg.run ? `#${state.chg.run}` : "" }],
+            (key) => { state.chg[key] = ""; loadChanges(); },
+            () => { state.chg.type = ""; state.chg.run = ""; loadChanges(); });
 
-        const params = new URLSearchParams({ limit: 200 });
-        if (state.chg.type) params.set("change_type", state.chg.type);
         try {
             const rows = await api("/api/runs/changes?" + params);
             if (seq !== chgSeq) return;
             tbody.innerHTML = rows.map((r) =>
-                `<tr><td class="num">#${r.run_id}</td>
-                     <td><span class="badge is-${esc(r.change_type)}">${esc(r.change_type)}</span></td>
-                     <td class="id" title="${esc(r.standard_id)}">${esc(r.standard_id)}</td>
+                `<tr><td class="num"><a href="#/changes?run=${r.run_id}">#${r.run_id}</a></td>
+                     <td>${changeBadge(r.change_type)}</td>
+                     <td class="id" title="${esc(r.standard_id)}">${esc(r.standard_id)}${pubTag((r.details || {}).publicationType)}</td>
                      <td><span class="srcbadge">${esc(r.tc_code)}</span></td>
                      <td title="${esc(r.title_en)}">${dash(r.title_en)}</td>
+                     <td>${relationText(r.details)}</td>
                      <td class="muted">${esc(r.old_status || "—")} → ${esc(r.new_status)}</td>
                      <td class="muted">${when(r.created_at)}</td></tr>`).join("");
-            if (!rows.length) emptyRow(tbody, 7, "No changes recorded yet. Run monitoring to compare the sources against the database.");
+            if (!rows.length) emptyRow(tbody, 8, "No changes recorded yet. Run monitoring to compare the sources against the database.");
         } catch (err) {
-            if (seq === chgSeq) { emptyRow(tbody, 7, "Could not load the change log."); toastError(err); }
+            if (seq === chgSeq) { emptyRow(tbody, 8, "Could not load the change log."); toastError(err); }
         } finally {
             if (seq === chgSeq) pending($("#chg-result"), false);
         }
     }
 
+    /* Traceability for one record: its own changes, and its family's rows. */
+    async function showHistory(id) {
+        const card = $("#std-detail");
+        $$("#t-standards tbody tr").forEach((r) =>
+            r.classList.toggle("is-selected", r.dataset.std === String(id)));
+        try {
+            const h = await api(`/api/standards/${encodeURIComponent(id)}/history`);
+            const s = h.standard;
+            const statusBadge = (x) =>
+                `<span class="badge is-${esc(x.status.toLowerCase())}">${esc(x.status)}</span>`;
+            $("#std-detail-title").innerHTML =
+                `${esc(s.standard_id)}${pubTag(s.publication_type)} ${statusBadge(s)}`;
+            const facts = [
+                ["Publication type", s.publication_type], ["Family", s.family],
+                ["First seen", s.first_seen_run_id && `run #${s.first_seen_run_id}`],
+                ["Last seen", s.last_seen_run_id && `run #${s.last_seen_run_id}`],
+                ["Withdrawn in", s.withdrawn_run_id && `run #${s.withdrawn_run_id}`],
+                ["Supersedes", s.supersedes], ["Superseded by", s.superseded_by],
+            ];
+            $("#std-detail-body").innerHTML =
+                `<div class="detail-grid">
+                    <div><h3>Record</h3>${facts.map(([k, v]) =>
+                        `<div class="rail-stat"><span>${esc(k)}</span><span>${dash(v)}</span></div>`).join("")}</div>
+                    <div><h3>Changes across runs</h3><ul class="timeline">${h.changes.map((c) =>
+                        `<li><span class="when">#${c.run_id} · ${when(c.created_at)}</span>
+                             ${changeBadge(c.change_type)} <span>${relationText(c.details)}</span></li>`).join("")
+                        || '<li class="muted">No changes recorded.</li>'}</ul></div>
+                    <div><h3>Editions, amendments &amp; corrigenda</h3><ul class="timeline">${h.family.map((f) =>
+                        `<li><span class="when">${dash(f.publish_date)}</span>
+                             <span class="id">${esc(f.standard_id)}${pubTag(f.publication_type)}</span>
+                             ${statusBadge(f)}</li>`).join("")
+                        || '<li class="muted">No other publications of this standard.</li>'}</ul></div>
+                 </div>`;
+            card.hidden = false;
+            card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        } catch (err) { toastError(err); }
+    }
+
     // ── runs ─────────────────────────────────────────────────────────
     async function loadRuns({ first = false } = {}) {
         const tbody = $("#t-runs tbody");
-        if (first) skeletonRows(tbody, 9, 6); else pending($("#runs-result"), true);
+        if (first) skeletonRows(tbody, 12, 6); else pending($("#runs-result"), true);
         try {
-            const [runs, schedule] = await Promise.all([
-                api("/api/runs?limit=20"), api("/api/runs/schedule"),
+            const [runs, schedule, coverage] = await Promise.all([
+                api("/api/runs?limit=30"), api("/api/runs/schedule"), api("/api/runs/coverage"),
             ]);
+            const link = (r, n, type) => n
+                ? `<a href="#/changes?run=${r.id}${type ? "&type=" + type : ""}">${num(n)}</a>` : "0";
             tbody.innerHTML = runs.map((r) =>
-                `<tr><td class="num">#${r.id}</td><td class="muted">${when(r.started_at)}</td>
+                `<tr><td class="num"><a href="#/changes?run=${r.id}">#${r.id}</a></td>
+                     <td class="muted">${when(r.started_at)}</td>
                      <td>${esc(r.trigger)}</td>
-                     <td><span class="badge is-${esc(r.status)}">${esc(r.status)}</span></td>
+                     <td><span class="badge is-${esc(r.status)}" title="${esc(r.message || "")}">${esc(r.status)}</span></td>
                      <td class="num">${num(r.extracted_count)}</td>
-                     <td class="num">${num(r.added_count)}</td>
-                     <td class="num">${num(r.withdrawn_count)}</td>
+                     <td class="num">${link(r, r.added_count, "added")}</td>
+                     <td class="num">${link(r, r.updated_count, "updated")}</td>
+                     <td class="num">${link(r, r.withdrawn_count, "withdrawn")}</td>
+                     <td class="num">${link(r, r.superseded_count, "superseded")}</td>
+                     <td class="num">${r.failed_source_count
+                         ? `<a href="#/issues">${num(r.failed_source_count)}</a>` : "0"}</td>
                      <td class="num">${r.failed_record_count
-                         ? `<a href="#/issues">${num(r.failed_record_count)}</a>`
-                         : "0"}</td>
+                         ? `<a href="#/issues">${num(r.failed_record_count)}</a>` : "0"}</td>
                      <td class="num">${num(r.alerts_sent)}</td></tr>`).join("");
-            if (!runs.length) emptyRow(tbody, 9, "No runs yet.");
+            if (!runs.length) emptyRow(tbody, 12, "No runs yet.");
 
             const last = runs[0];
             $("#rail-lastrun").innerHTML = last
                 ? `<div class="rail-stat"><span>Run</span><span>#${last.id}</span></div>
                    <div class="rail-stat"><span>Status</span><span>${esc(last.status)}</span></div>
                    <div class="rail-stat"><span>Extracted</span><span>${num(last.extracted_count)}</span></div>
-                   <div class="rail-stat"><span>Added</span><span>${num(last.added_count)}</span></div>
+                   <div class="rail-stat"><span>New</span><span>${num(last.added_count)}</span></div>
+                   <div class="rail-stat"><span>Updated</span><span>${num(last.updated_count)}</span></div>
                    <div class="rail-stat"><span>Withdrawn</span><span>${num(last.withdrawn_count)}</span></div>
-                   <div class="rail-stat"><span>Alerts sent</span><span>${num(last.alerts_sent)}</span></div>`
+                   <div class="rail-stat"><span>Superseded</span><span>${num(last.superseded_count)}</span></div>
+                   <div class="rail-stat"><span>Alerts sent</span><span>${num(last.alerts_sent)}</span></div>
+                   ${last.message ? `<p class="muted">${esc(last.message)}</p>` : ""}`
                 : `<p class="muted">No runs yet.</p>`;
 
             const failedSources = last
@@ -394,38 +490,120 @@
                    <div class="rail-stat"><span>Sources missed</span>
                        <span>${num(failedSources)}</span></div>
                    ${last.failed_record_count || failedSources
-                       ? `<a class="rail-link" href="#/issues">See what was missed →</a>`
+                       ? `<a class="rail-link" href="#/issues">See what was missed and why →</a>`
                        : `<p class="muted">Everything on every source page was captured.</p>`}`
                 : `<p class="muted">No runs yet.</p>`;
 
-            $("#rail-schedule").innerHTML = schedule.enabled
-                ? `<p>Day ${esc(schedule.cron.day)} of each month at
-                      ${esc(schedule.cron.hour)}:${String(schedule.cron.minute).padStart(2, "0")} UTC.</p>
-                   <p class="muted">Next: ${when(schedule.next_run_time) || "n/a"}</p>`
-                : `<p class="muted">Scheduler disabled. Set <code>SCHEDULER_ENABLED=true</code>
-                      to monitor on a schedule.</p>`;
+            renderSchedule(schedule);
+            renderCoverage(coverage);
         } catch (err) {
-            emptyRow(tbody, 9, "Could not load runs."); toastError(err);
+            emptyRow(tbody, 12, "Could not load runs."); toastError(err);
         } finally { pending($("#runs-result"), false); }
     }
 
+    function renderSchedule(s) {
+        $("#rail-schedule").innerHTML = s.enabled
+            ? `<p>${esc(s.description)}.</p>
+               <p class="muted">Next: ${when(s.next_run_time) || "none scheduled (window ended?)"}</p>`
+            : `<p class="muted">Not scheduled — runs only when started by hand.</p>`;
+        const form = $("#schedule-form");
+        if (form.hidden) return;
+        $("#sch-enabled").checked = s.enabled;
+        $("#sch-frequency").value = s.frequency;
+        $("#sch-time").value = `${String(s.hour).padStart(2, "0")}:${String(s.minute).padStart(2, "0")}`;
+        $("#sch-dow").value = s.day_of_week;
+        $("#sch-dom").value = s.day_of_month;
+        $("#sch-cron").value = s.cron || "";
+        $("#sch-start").value = s.start_date || "";
+        $("#sch-end").value = s.end_date || "";
+        syncScheduleForm();
+    }
+
+    function syncScheduleForm() {
+        const frequency = $("#sch-frequency").value;
+        $$("#schedule-form [data-sch]").forEach((el) => {
+            el.hidden = !el.dataset.sch.split(" ").includes(frequency);
+        });
+    }
+
+    async function saveSchedule(e) {
+        e.preventDefault();
+        const [hour, minute] = ($("#sch-time").value || "02:00").split(":").map(Number);
+        const body = {
+            enabled: $("#sch-enabled").checked,
+            frequency: $("#sch-frequency").value,
+            hour, minute,
+            day_of_week: $("#sch-dow").value,
+            day_of_month: Number($("#sch-dom").value || 1),
+            cron: $("#sch-cron").value.trim() || null,
+            start_date: $("#sch-start").value || null,
+            end_date: $("#sch-end").value || null,
+        };
+        try {
+            const saved = await api("/api/runs/schedule", { method: "PUT", body: JSON.stringify(body) });
+            renderSchedule(saved);
+            showToast(saved.enabled ? `Scheduled: ${esc(saved.description)}` : "Schedule disabled",
+                      { type: "success" });
+            renderCoverage(await api("/api/runs/coverage"));
+        } catch (err) { toastError(err); }
+    }
+
+    function renderCoverage(c) {
+        const row = (key, label) =>
+            `<div class="rail-stat"><span>${c.met[key] ? "✓" : "○"} ${esc(label)}</span>
+                 <span>${num(c.observed[key])} / ${num(c.targets[key])}</span></div>`;
+        $("#rail-coverage").innerHTML =
+            `<p class="muted">${esc(c.since)} → ${esc(c.until)} · ${num(c.run_count)} run(s)</p>
+             ${row("added", "New standards")}
+             ${row("updated", "Updated (edition / A / AC)")}
+             ${row("withdrawn", "Withdrawn or superseded")}
+             <p class="${c.sufficient ? "" : "muted"}">${c.sufficient
+                 ? "Enough examples of every change type in this period."
+                 : "Not enough examples yet — keep the schedule running or add committees on the Sources page."}</p>`;
+    }
+
+    /* Runs go to the background (App Service drops requests after 230 s);
+     * progress is polled until the run reaches a final state. */
     async function runMonitoring(originEl) {
         const buttons = $$("#btn-run, #btn-run-live");
+        const progress = $("#run-progress");
         buttons.forEach((b) => (b.disabled = true));
         showToast(
             "Fetching every source live — ISO, BIFMA, ALI and WSTDA go through a browser, " +
-            "so this takes a few minutes.",
+            "so this takes a few minutes. You can keep working meanwhile.",
             { type: "info", duration: 6000 });
         try {
-            const run = await api("/api/runs", { method: "POST", body: JSON.stringify({}) });
-            const caught = run.added_count + run.withdrawn_count + run.reinstated_count + run.modified_count;
+            let run = await api("/api/runs", {
+                method: "POST",
+                body: JSON.stringify({
+                    background: true,
+                    allow_mass_withdrawal: !!($("#run-allow-mass") && $("#run-allow-mass").checked),
+                }),
+            });
+            progress.hidden = false;
+            while (run.status === "running") {
+                await new Promise((r) => setTimeout(r, 3000));
+                const active = await api("/api/runs/active");
+                if (active.run && active.run.id === run.id) {
+                    progress.innerHTML =
+                        `<span class="badge is-running">running</span> run #${run.id}: ` +
+                        `${num(active.sources_done)} of ${num(active.run.source_count)} sources checked`;
+                }
+                run = await api(`/api/runs/${run.id}`);
+            }
+            progress.hidden = true;
+            if ($("#run-allow-mass")) $("#run-allow-mass").checked = false;
+
+            const caught = run.added_count + run.updated_count + run.withdrawn_count +
+                run.superseded_count + run.reinstated_count + run.modified_count;
             const failedSources = run.results.filter((r) => r.status === "failed").length;
 
             if (caught) celebrate(originEl, caught);
             showToast(
-                `Run #${run.id} ${run.status} — +${run.added_count} added, ` +
-                `${run.withdrawn_count} withdrawn, ${run.alerts_sent} alert(s)`,
-                { type: caught ? "success" : "info", duration: 5000 });
+                `Run #${run.id} ${run.status} — ${run.added_count} new, ${run.updated_count} updated, ` +
+                `${run.withdrawn_count} withdrawn, ${run.superseded_count} superseded, ` +
+                `${run.alerts_sent} alert(s)`,
+                { type: caught ? "success" : "info", duration: 6000 });
 
             // Never let a gap pass silently: say what was missed and where to look.
             if (run.failed_record_count) {
@@ -438,13 +616,14 @@
             if (failedSources) {
                 showToast(
                     `${failedSources} source(s) could not be fetched; their standards were ` +
-                    `left untouched rather than withdrawn.`,
+                    `left untouched rather than withdrawn. Issues lists each cause.`,
                     { type: "error", duration: 9000 });
             }
             await Promise.all([
                 loadStandards(), loadChanges(), loadRuns(), loadSources(), loadIssues(),
             ]);
         } catch (err) {
+            progress.hidden = true;
             toastError(err);
         } finally {
             buttons.forEach((b) => (b.disabled = false));
@@ -549,6 +728,7 @@
             $("#btn-issues-all").textContent =
                 state.iss.latest ? "Show all runs" : "Latest run only";
             $("#issue-kpis").removeAttribute("aria-busy");
+            loadFailures(seq);
         } catch (err) {
             if (seq === issSeq) { emptyRow(tbody, 7, "Could not load extraction issues."); toastError(err); }
         } finally {
@@ -556,10 +736,44 @@
         }
     }
 
+    /* Every source that could not be read: the cause, HTTP status and attempts. */
+    async function loadFailures(seq) {
+        const tbody = $("#t-failures tbody");
+        try {
+            const rows = await api("/api/runs/source-failures?limit=300" +
+                                   (state.iss.latest ? "&latest=true" : ""));
+            if (seq !== issSeq) return;
+            tbody.innerHTML = rows.map((r) => {
+                const log = (r.attempt_log || []).map((a) =>
+                    `#${a.attempt} ${a.transport}: ${a.outcome}${a.cause ? " (" + a.cause + ")" : ""}` +
+                    `${a.http_status ? " HTTP " + a.http_status : ""}, ${a.duration_ms} ms`).join("\n");
+                return `<tr><td class="num">#${r.run_id}</td>
+                     <td>${bodyBadge(r.body)} ${esc(r.tc_code)}</td>
+                     <td><span class="srcbadge">${esc(r.transport)}</span></td>
+                     <td title="${esc(r.cause_label || "")}"><span class="badge is-failed">${
+                         esc((r.cause || "unknown").replace(/_/g, " "))}</span>
+                         <span class="muted">${esc(r.cause_label || "")}</span></td>
+                     <td class="num">${r.http_status ? esc(r.http_status) : "—"}</td>
+                     <td class="num" title="${esc(log)}">${num(r.attempts)}</td>
+                     <td title="${esc(r.error)}">${dash(r.error)}
+                         <a href="${esc(r.url)}" target="_blank" rel="noopener">open</a></td>
+                     <td class="muted">${when(r.last_success_at) || "never"}</td></tr>`;
+            }).join("");
+            if (!rows.length) {
+                emptyRow(tbody, 8, state.iss.latest
+                    ? "Every source was fetched on the last run."
+                    : "No source has ever failed to fetch.");
+            }
+            $("#fail-count").innerHTML = `<b>${num(rows.length)}</b> failed fetch(es)`;
+        } catch (err) {
+            if (seq === issSeq) emptyRow(tbody, 8, "Could not load fetch failures.");
+        }
+    }
+
     // ── sources ──────────────────────────────────────────────────────
     async function loadSources({ first = false } = {}) {
         const tbody = $("#t-sources tbody");
-        if (first) skeletonRows(tbody, 7, 8); else pending($("#src-result"), true);
+        if (first) skeletonRows(tbody, 8, 8); else pending($("#src-result"), true);
         try {
             const rows = await api("/api/sources");
             const bodies = [...new Set(rows.map((r) => r.body))];
@@ -576,6 +790,14 @@
                 () => { state.src.body = ""; loadSources(); },
                 () => { state.src.body = ""; loadSources(); });
 
+            const health = (r) => {
+                if (!r.last_status) return '<span class="muted">not run yet</span>';
+                if (r.last_status !== "failed") return `<span class="badge is-success">ok</span>`;
+                const streak = r.consecutive_failures > 1 ? ` ×${r.consecutive_failures}` : "";
+                return `<span class="badge is-failed" title="${esc(r.last_error)}">${
+                    esc((r.last_error_cause || "failed").replace(/_/g, " "))}${streak}</span>` +
+                    (r.last_success_at ? ` <span class="muted">ok ${when(r.last_success_at).slice(0, 10)}</span>` : "");
+            };
             const shown = state.src.body ? rows.filter((r) => r.body === state.src.body) : rows;
             tbody.innerHTML = shown.map((r) =>
                 `<tr><td>${bodyBadge(r.body)}</td>
@@ -585,11 +807,29 @@
                      <td class="num">${num(r.standard_count)}</td>
                      <td class="num">${num(r.current_count)}</td>
                      <td><span class="srcbadge">${esc(r.fetch_strategy)}</span></td>
+                     <td>${health(r)}</td>
                      <td class="muted">${when(r.last_run_at) || "—"}</td></tr>`).join("");
-            if (!shown.length) emptyRow(tbody, 7, "No sources.");
+            if (!shown.length) emptyRow(tbody, 8, "No sources.");
         } catch (err) {
-            emptyRow(tbody, 7, "Could not load sources."); toastError(err);
+            emptyRow(tbody, 8, "Could not load sources."); toastError(err);
         } finally { pending($("#src-result"), false); }
+    }
+
+    async function addSource(e) {
+        e.preventDefault();
+        const body = {
+            body: $("#src-body").value,
+            tc_code: $("#src-tc").value.trim(),
+            title: $("#src-title").value.trim() || null,
+            url: $("#src-url").value.trim(),
+        };
+        try {
+            const created = await api("/api/sources", { method: "POST", body: JSON.stringify(body) });
+            $("#src-add").reset();
+            showToast(`Added ${esc(created.body)} ${esc(created.tc_code)} — it is included from the next run.`,
+                      { type: "success" });
+            loadSources();
+        } catch (err) { toastError(err); }
     }
 
     // ── subscriptions & alerts ───────────────────────────────────────
@@ -640,19 +880,40 @@
     }
 
     // ── export ───────────────────────────────────────────────────────
-    async function exportExcel() {
-        showToast("Building the workbook…", { type: "info", duration: 2000 });
+    /* `filtered` exports exactly what the Standards list shows (same filters,
+     * same order); the server re-reads the file and reports whether it matches. */
+    async function exportExcel(filtered) {
+        const params = new URLSearchParams();
+        if (filtered) {
+            if (state.std.q) params.set("q", state.std.q);
+            if (state.std.status) params.set("status", state.std.status);
+            if (state.std.body) params.set("body", state.std.body);
+            if (state.std.change) params.set("change_type", state.std.change);
+        }
+        showToast("Building and verifying the workbook…", { type: "info", duration: 2500 });
         try {
-            const res = await fetch("/api/export/standards.xlsx", { headers: { "X-API-Key": state.key } });
+            const res = await fetch("/api/export/standards.xlsx?" + params,
+                                    { headers: { "X-API-Key": state.key } });
             if (!res.ok) throw new Error((await res.text()).slice(0, 200));
+            const verified = res.headers.get("X-Export-Verified") === "pass";
+            const rows = Number(res.headers.get("X-Export-Rows") || 0);
+            const expected = Number(res.headers.get("X-Export-Expected-Rows") || 0);
+            const name = (res.headers.get("Content-Disposition") || "").match(/filename="?([^";]+)/);
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "standards_database.xlsx";
+            a.download = name ? name[1] : "standards_database.xlsx";
             a.click();
             URL.revokeObjectURL(url);
-            showToast("Excel export downloaded", { type: "success" });
+            if (verified) {
+                showToast(`Excel downloaded — verified: ${num(rows)} of ${num(expected)} rows match ` +
+                          `the ${filtered ? "filtered list" : "database"}.`, { type: "success", duration: 5000 });
+            } else {
+                showToast(`Excel downloaded, but the check FAILED (${num(rows)} rows written, ` +
+                          `${num(expected)} expected). See its "Export Check" sheet.`,
+                          { type: "error", duration: 9000 });
+            }
         } catch (err) { toastError(err); }
     }
 
@@ -671,9 +932,15 @@
     };
 
     function route() {
-        const wanted = (location.hash.replace("#/", "") || "standards").split("?")[0];
+        const [path, query] = (location.hash.replace("#/", "") || "standards").split("?");
+        const wanted = path || "standards";
         const view = state.key && state.me ? (VIEWS[wanted] ? wanted : "standards") : "connect";
         state.view = view;
+        if (view === "changes" && query !== undefined) {
+            const params = new URLSearchParams(query);
+            state.chg.run = (params.get("run") || "").replace(/\D/g, "");
+            state.chg.type = CHANGE_TYPES.includes(params.get("type")) ? params.get("type") : "";
+        }
 
         $$(".view").forEach((el) => el.classList.toggle("is-active", el.id === `view-${view}`));
         $$("#topnav a, .topnav-setup").forEach((a) =>
@@ -694,6 +961,14 @@
             const admin = state.me.role === "admin";
             $$("#btn-run, #btn-export, #btn-export2, #btn-run-live, #btn-quality, #btn-sessions")
                 .forEach((b) => { b.hidden = !admin; });
+            $("#schedule-form").hidden = !admin;
+            $("#src-add-card").hidden = !admin;
+            if (admin) {
+                api("/api/sources/bodies").then((bodies) => {
+                    $("#src-body").innerHTML = bodies.map((b) =>
+                        `<option value="${esc(b)}">${esc(b)}</option>`).join("");
+                }).catch(() => {});
+            }
             if (!location.hash || location.hash === "#/connect") location.hash = "#/standards";
             route();
             api("/api/standards/statistics")
@@ -724,6 +999,23 @@
         state.std.offset = 0;
         loadStandards();
     });
+    $("#f-change").addEventListener("change", () => {
+        state.std.change = $("#f-change").value;
+        state.std.offset = 0;
+        loadStandards();
+    });
+    $("#t-standards").addEventListener("click", (e) => {
+        if (e.target.closest("a")) return;
+        const row = e.target.closest("tr[data-std]");
+        if (row) showHistory(row.dataset.std);
+    });
+    $("#std-detail-close").onclick = () => {
+        $("#std-detail").hidden = true;
+        $$("#t-standards tbody tr.is-selected").forEach((r) => r.classList.remove("is-selected"));
+    };
+    $("#sch-frequency").addEventListener("change", syncScheduleForm);
+    $("#schedule-form").addEventListener("submit", saveSchedule);
+    $("#src-add").addEventListener("submit", addSource);
     $("#prev").onclick = () => {
         state.std.offset = Math.max(0, state.std.offset - PAGE_SIZE);
         loadStandards();
@@ -741,8 +1033,8 @@
         state.iss.latest = !state.iss.latest;
         loadIssues();
     };
-    $("#btn-export").onclick = exportExcel;
-    $("#btn-export2").onclick = exportExcel;
+    $("#btn-export").onclick = () => exportExcel(true);
+    $("#btn-export2").onclick = () => exportExcel(false);
 
     $("#t-subs").addEventListener("click", async (e) => {
         const btn = e.target.closest("[data-unsub]");
@@ -802,7 +1094,8 @@
               section: "Monitoring", action: () => runMonitoring($("#btn-run")) },
             { key: "6", label: "Extraction issues", keys: ["6"], section: "Navigate",
               action: () => { location.hash = "#/issues"; } },
-            { key: "e", label: "Export Excel", keys: ["E"], section: "Monitoring", action: exportExcel },
+            { key: "e", label: "Export Excel (filtered list)", keys: ["E"], section: "Monitoring",
+              action: () => exportExcel(true) },
             { key: "1", label: "Standards", keys: ["1"], section: "Navigate", action: go("standards") },
             { key: "2", label: "Change log", keys: ["2"], section: "Navigate", action: go("changes") },
             { key: "3", label: "Runs", keys: ["3"], section: "Navigate", action: go("runs") },
@@ -815,8 +1108,10 @@
             { label: "Show what could not be extracted", keys: ["6"],
               tags: "issues failed missing lost gaps errors",
               action: () => { location.hash = "#/issues"; } },
-            { label: "Export database to Excel", keys: ["E"], tags: "export excel xlsx download",
-              action: exportExcel },
+            { label: "Export filtered standards list to Excel", keys: ["E"],
+              tags: "export excel xlsx download filtered", action: () => exportExcel(true) },
+            { label: "Export whole database to Excel", keys: [],
+              tags: "export excel xlsx download full database", action: () => exportExcel(false) },
             { label: "Go to Standards", keys: ["1"], tags: "standards database", action: go("standards") },
             { label: "Go to Change log", keys: ["2"], tags: "changes withdrawn added", action: go("changes") },
             { label: "Go to Runs", keys: ["3"], tags: "runs monitoring schedule", action: go("runs") },

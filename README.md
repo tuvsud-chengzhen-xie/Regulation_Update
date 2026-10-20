@@ -28,8 +28,8 @@ or <http://localhost:8000/docs> for the OpenAPI documentation. Press `?` in the
 dashboard for the keyboard shortcuts, ⌘K for the command palette.
 
 The first startup creates the SQLite database, the bootstrap administrator and
-the 26 monitored sources taken from `Database Format.xlsx` and the
-specification. Click **Run monitoring** to perform a first run — it fetches
+the 40 monitored sources taken from `Database Format.xlsx`, the
+specification and the ASTM F15 subcommittee list. Click **Run monitoring** to perform a first run — it fetches
 every source live, so allow a few minutes for it to finish.
 
 ```bash
@@ -66,9 +66,14 @@ TRAINING_DATA_DIR=/home/AI_Training_Data
 Set production values for `BOOTSTRAP_ADMIN_EMAIL` and
 `BOOTSTRAP_ADMIN_API_KEY` before the first startup. Configure
 `EMAIL_BACKEND=smtp` and the relevant `SMTP_*` settings when alerts should be
-delivered by email. For a single App Service instance, enable scheduled runs
-with `SCHEDULER_ENABLED=true`; use a separate scheduler for multi-instance
-deployments to avoid duplicate runs.
+delivered by email. The monitoring schedule is set in the portal (Runs >
+Schedule); run it on a single App Service instance, or each instance fires its
+own run.
+
+`startup.sh` installs Chromium for the browser-backed sources into
+`/home/ms-playwright` in the background (log: `/home/LogFiles/playwright-install.log`);
+set `INSTALL_BROWSER=false` to skip. Until it is ready, those sources fall back
+to plain HTTPS and any failure is shown, with its cause, on the Issues page.
 
 ## What it does
 
@@ -120,6 +125,32 @@ The specification's worked example is a test: with `EN 581-1:1998` stored and
 `EN 581-1:2026` extracted, the first becomes `Withdrawn` and the second is
 added as `Current` — two rows.
 
+**Change classification and traceability.** Each reference is split into
+family, edition and suffixes (`EN 16121:2023/AC:2025` → family `EN 16121`,
+corrigendum to `EN 16121:2023`), so every change says what it is:
+
+| Change | Meaning |
+|---|---|
+| `added` | a standard the source never published before |
+| `updated` | a new edition, amendment (A1) or corrigendum (AC) of a standard already in the database |
+| `withdrawn` | removed from the source with no replacement in the same run |
+| `superseded` | removed and replaced in the same run (`superseded_by` names the replacement) |
+| `reinstated` / `modified` | back in the source / metadata changed |
+
+CEN lists corrigenda as their own rows, so a new AC is captured as its own
+record (`updated`, relation `corrigendum`) and never withdraws its base
+standard. Every record carries `first_seen_run_id`, `last_seen_run_id`,
+`withdrawn_run_id`, `supersedes`/`superseded_by` and its last change;
+`GET /api/standards/{id}/history` (click a row on the Standards page) shows
+the record's changes across runs and its editions, amendments and corrigenda.
+
+**Withdrawal validation.** A run that would withdraw more than
+`MAX_WITHDRAWAL_RATIO` (default 50 %) of a source's current standards is held
+back as a suspect extraction (`suspicious_withdrawal` on the Issues page) unless
+the run is started with *Allow mass withdrawals*. CEN rows whose Reference is
+not a CEN deliverable, and HTML error pages served in place of the export
+(e.g. an expired `cs=` checksum), are reported instead of being parsed.
+
 **Safety rule:** the withdrawal rule is applied only when a source reports a
 successful extraction. A fetch error, a bot-protection interstitial, or an
 empty result where the database holds records marks that source `failed` and
@@ -145,13 +176,35 @@ manage users and sources, trigger runs, curate records and export.
 
 `GET /api/export/standards.xlsx` (administrators only) produces a workbook whose
 first seven columns are exactly the bilingual headers of `Database Format.xlsx`,
-followed by the operational columns, plus `Sources` and `Change Log` sheets.
+followed by the operational and traceability columns, plus `Sources`,
+`Change Log` and `Export Check` sheets. It takes the same filters as the
+Standards list (`q`, `status`, `body`, `tc_code`, `publication_type`,
+`change_type`) and uses the same query, so **Export Excel** on the Standards page
+exports exactly the rows on screen. After writing, the file is re-read and
+compared row by row with the database; the result is in the `Export Check`
+sheet, the `X-Export-Verified` header and `GET /api/export/verify`. Scraped text
+is always written as text (no formula injection) and characters Excel rejects
+are stripped instead of aborting the export.
 
-### 5. Scheduling
+### 5. Scheduling and coverage
 
-The specification leaves the frequency "TBD", so it is configuration: set
-`SCHEDULER_ENABLED=true` and the `SCHEDULE_CRON_*` variables (default: 02:00 UTC
-on the 1st of each month). `GET /api/runs/schedule` reports the next run.
+The frequency is set in the portal (Runs > Schedule, `PUT /api/runs/schedule`):
+daily, weekly, every two weeks, monthly or a crontab, optionally bounded by a
+monitoring window (start/end date) so a trial period stops by itself. The
+`SCHEDULE_*` variables are only the defaults until a schedule is saved.
+`GET /api/runs/coverage` counts the new, updated and withdrawn/superseded
+examples collected in the window against `COVERAGE_TARGET_*` (default 5 each);
+first captures of a source are excluded, since they are a baseline, not news.
+
+Runs started from the portal execute in the background (App Service drops
+requests after 230 s); progress is committed source by source, only one run
+executes at a time, and a run interrupted by a restart is closed as `failed`.
+
+Monitoring covers the original 26 sources plus 14 further ASTM F15
+subcommittees (juvenile and consumer products, which are revised often).
+Administrators add CEN/TCs, ISO TCs/SCs or ASTM subcommittees on the Sources
+page or in bulk with `POST /api/sources/import`; URLs are restricted to the
+standards bodies' own sites.
 
 ### 6. AI training-data capture
 
@@ -204,6 +257,22 @@ allow-listed egress IP or a licensed feed, and the Issues screen names it.
 
 The transport is per source, not per body: `PATCH /api/sources/{id}` with
 `{"fetch_strategy": "browser"}` moves any source across if a site changes.
+
+### When a source is unavailable
+
+Every request is logged with a cause — `timeout`, `dns`, `connection`, `tls`,
+`rate_limited`, `forbidden`, `not_found`, `http_5xx`, `challenge`,
+`error_page`, `empty_response`, `browser_unavailable`, `browser_crash`.
+Transient causes are retried with exponential backoff (`FETCH_MAX_ATTEMPTS`,
+`FETCH_RETRY_BACKOFF_SECONDS`); permanent ones fail at once. Error pages served
+with HTTP 200 are recognised, a navigation timeout that still rendered the
+listing is used, a crashed browser is relaunched, and if Chromium cannot start
+at all, browser-backed sources are tried over plain HTTPS.
+
+The portal shows it all: **Issues > Source fetch failures** lists each failed
+source with cause, HTTP status, every attempt and its last success; the
+**Sources** page shows each source's last result and failure streak
+(`GET /api/runs/source-failures`, `GET /api/sources`).
 
 ## Knowing what was missed
 
@@ -324,7 +393,7 @@ app/
   routers/           standards, sources, runs, subscriptions, users, export, training
   ds/                CPS CoE Design System v1.1, vendored verbatim (served at /ds)
   static/            index.html (app shell), app.css, app.js, logo.png
-tests/               56 tests, including every worked example from the specification.
+tests/               87 tests, including every worked example from the specification.
                      Extraction is stubbed with bundled sample payloads so the
                      suite never touches the network — the real parsers still run.
 ```
@@ -334,25 +403,27 @@ tests/               56 tests, including every worked example from the specifica
 | Method | Path | Access |
 |---|---|---|
 | GET | `/health` | public |
-| GET | `/api/standards`, `/api/standards/{id}`, `/api/standards/statistics` | user |
+| GET | `/api/standards`, `/api/standards/{id}`, `/api/standards/{id}/history`, `/api/standards/statistics` | user |
 | PATCH | `/api/standards/{id}` | admin |
 | GET | `/api/sources`, `/api/sources/bodies` | user |
-| POST/PATCH/DELETE | `/api/sources`, `/api/sources/{id}` | admin |
-| POST | `/api/runs` | admin |
-| GET | `/api/runs`, `/api/runs/{id}`, `/api/runs/{id}/summary`, `/api/runs/changes`, `/api/runs/schedule` | user |
-| GET | `/api/runs/issues`, `/api/runs/issues/summary`, `/api/runs/{id}/issues` | user |
+| POST/PATCH/DELETE | `/api/sources`, `/api/sources/import`, `/api/sources/{id}` | admin |
+| POST | `/api/runs` (`background: true` returns 202) | admin |
+| GET | `/api/runs`, `/api/runs/{id}`, `/api/runs/active`, `/api/runs/{id}/summary`, `/api/runs/changes`, `/api/runs/schedule`, `/api/runs/coverage` | user |
+| PUT | `/api/runs/schedule` | admin |
+| GET | `/api/runs/issues`, `/api/runs/issues/summary`, `/api/runs/{id}/issues`, `/api/runs/source-failures` | user |
 | GET/POST/DELETE | `/api/subscriptions` | user (admins may act for others) |
 | GET | `/api/subscriptions/alerts`, `/api/subscriptions/alerts/{id}` | user |
 | GET | `/api/users/me` | user |
 | GET/POST/PATCH/DELETE | `/api/users` | admin |
-| GET | `/api/export/standards.xlsx` | admin |
+| GET | `/api/export/standards.xlsx`, `/api/export/verify` | admin |
 | POST | `/ai_training_event`, `/ai_training_snapshot` | user |
 | GET | `/ai_training_schema` | public |
 | GET | `/ai_training_quality`, `/ai_training_sessions` | admin |
 
 ## Open points for the customer
 
-* **Monitoring frequency** is "TBD" in the specification — currently monthly.
+* **Monitoring frequency** is "TBD" in the specification — it is now set in the
+  portal, with an optional monitoring window and coverage targets.
 * **Chinese titles** are never available from these sources; the column is left
   blank and can be curated via `PATCH /api/standards/{id}`.
 * **Keyword subscriptions** are implemented as case-insensitive substring

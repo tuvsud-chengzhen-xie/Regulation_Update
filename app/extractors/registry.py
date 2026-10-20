@@ -35,6 +35,18 @@ DEFAULT_FETCH_STRATEGY: dict[str, str] = {
     body: cls.fetch_strategy for body, cls in EXTRACTORS.items()
 }
 
+#: Hosts a source URL may point at. The server fetches whatever URL a source
+#: holds, so administrators can only add catalogue pages of the bodies' sites.
+ALLOWED_HOSTS: dict[str, set[str]] = {
+    "CEN": {"standards.cencenelec.eu"},
+    "ISO": {"www.iso.org", "iso.org"},
+    "ASTM": {"www.astm.org", "astm.org"},
+    "ASME": {"www.asme.org", "asme.org"},
+    "BIFMA": {"www.madcad.com", "madcad.com", "www.bifma.org", "bifma.org"},
+    "ALI": {"www.americanladderinstitute.org", "americanladderinstitute.org"},
+    "WSTDA": {"wstda.com", "www.wstda.com"},
+}
+
 
 def get_extractor(source) -> BaseExtractor:
     try:
@@ -55,6 +67,7 @@ def extract_source(source, ctx: FetchContext) -> ParseResult:
 
 
 __all__ = [
+    "ALLOWED_HOSTS",
     "DEFAULT_FETCH_STRATEGY",
     "EXTRACTORS",
     "SUPPORTED_BODIES",

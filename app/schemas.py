@@ -46,6 +46,18 @@ class StandardOut(ORMModel):
     status: str = Field(description="标准状态 / Status")
     source_id: int
     source_url: str | None = None
+    family: str | None = Field(default=None, description="Reference without edition, e.g. EN 16121")
+    publication_type: str | None = Field(
+        default=None, description="Standard, Amendment, Corrigendum, Technical Report, ..."
+    )
+    supersedes: str | None = None
+    superseded_by: str | None = None
+    first_seen_run_id: int | None = None
+    last_seen_run_id: int | None = None
+    withdrawn_run_id: int | None = None
+    withdrawn_at: datetime | None = None
+    last_change_type: str | None = None
+    last_change_run_id: int | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -55,6 +67,14 @@ class StandardPage(BaseModel):
     limit: int
     offset: int
     items: list[StandardOut]
+
+
+class StandardHistory(BaseModel):
+    """Traceability for one record: its own changes and its family's rows."""
+
+    standard: StandardOut
+    changes: list["ChangeOut"]
+    family: list[StandardOut]
 
 
 class StandardUpdate(BaseModel):
@@ -107,6 +127,18 @@ class SourceOut(ORMModel):
     last_run_at: datetime | None
     standard_count: int = 0
     current_count: int = 0
+    # Health, from the most recent run that included this source.
+    last_status: str | None = None
+    last_error: str | None = None
+    last_error_cause: str | None = None
+    last_success_at: datetime | None = None
+    consecutive_failures: int = 0
+
+
+class SourceImportResult(BaseModel):
+    created: list[SourceOut]
+    skipped: list[str]
+    errors: list[str]
 
 
 # --- runs -------------------------------------------------------------------
@@ -116,6 +148,15 @@ class RunRequest(BaseModel):
         default=None, description="Restrict the run to these sources; omit for all active sources."
     )
     send_alerts: bool = True
+    background: bool = Field(
+        default=False,
+        description="Return at once (202) and run in the background; poll GET /api/runs/{id}.",
+    )
+    allow_mass_withdrawal: bool = Field(
+        default=False,
+        description="Apply withdrawals even when a source would lose more than "
+        "MAX_WITHDRAWAL_RATIO of its current standards in one run.",
+    )
 
 
 class SourceRunResultOut(ORMModel):
@@ -123,13 +164,18 @@ class SourceRunResultOut(ORMModel):
     status: str
     extracted_count: int
     added_count: int
+    updated_count: int = 0
     withdrawn_count: int
+    superseded_count: int = 0
     reinstated_count: int
     modified_count: int
     failed_record_count: int
     fetch_strategy: str
     duration_ms: int
     error: str | None
+    error_cause: str | None = None
+    http_status: int | None = None
+    attempts: int = 0
 
 
 class RunOut(ORMModel):
@@ -142,13 +188,49 @@ class RunOut(ORMModel):
     is_first_run: bool
     extracted_count: int
     added_count: int
+    updated_count: int = 0
     withdrawn_count: int
+    superseded_count: int = 0
     reinstated_count: int
     modified_count: int
     failed_record_count: int
+    failed_source_count: int = 0
+    source_count: int = 0
     alerts_sent: int
     message: str | None
     results: list[SourceRunResultOut] = []
+
+
+class FetchAttemptOut(ORMModel):
+    attempt: int
+    transport: str
+    outcome: str
+    cause: str | None
+    http_status: int | None
+    duration_ms: int
+    bytes: int
+    message: str | None
+    created_at: datetime
+
+
+class SourceFailureOut(BaseModel):
+    """One source that could not be extracted in one run, and why."""
+
+    run_id: int
+    run_started_at: datetime
+    source_id: int
+    body: str
+    tc_code: str
+    url: str
+    transport: str
+    cause: str | None
+    cause_label: str | None
+    http_status: int | None
+    attempts: int
+    duration_ms: int
+    error: str | None
+    last_success_at: datetime | None
+    attempt_log: list[FetchAttemptOut] = []
 
 
 class IssueOut(ORMModel):
@@ -262,3 +344,6 @@ class TrainingAck(BaseModel):
     schemaVersion: str
     serverTimestamp: str
     path: str
+
+
+StandardHistory.model_rebuild()

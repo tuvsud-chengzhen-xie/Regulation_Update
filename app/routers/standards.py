@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 
 from app.models import ChangeRecord, ExtractionRun, Source, Standard
-from app.schemas import StandardOut, StandardPage, StandardUpdate
+from app.schemas import StandardHistory, StandardOut, StandardPage, StandardUpdate
 from app.security import AdminUser, CurrentUser, DbSession
 from app.services import training
+from app.services.standards_query import standards_query
 
 router = APIRouter(prefix="/api/standards", tags=["standards"])
 
@@ -22,34 +23,26 @@ def list_standards(
     body: str | None = None,
     tc_code: str | None = None,
     source_id: int | None = None,
+    publication_type: str | None = Query(
+        default=None, description="Standard, Amendment, Corrigendum, Technical Report, ..."
+    ),
+    change_type: str | None = Query(
+        default=None, description="Last change applied: added, updated, superseded, ..."
+    ),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
 ) -> StandardPage:
-    query = select(Standard).join(Source, Source.id == Standard.source_id)
-    if q:
-        needle = f"%{q}%"
-        query = query.where(
-            or_(
-                Standard.standard_id.ilike(needle),
-                Standard.title_en.ilike(needle),
-                Standard.title_zh.ilike(needle),
-            )
-        )
-    if status:
-        query = query.where(Standard.status == status)
-    if body:
-        query = query.where(Source.body == body)
-    if tc_code:
-        query = query.where(Standard.tc_code == tc_code)
-    if source_id:
-        query = query.where(Standard.source_id == source_id)
-
-    total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
-    rows = db.scalars(
-        query.order_by(Source.body, Standard.tc_code, Standard.standard_id)
-        .limit(limit)
-        .offset(offset)
-    ).all()
+    query = standards_query(
+        q=q,
+        status=status,
+        body=body,
+        tc_code=tc_code,
+        source_id=source_id,
+        publication_type=publication_type,
+        change_type=change_type,
+    )
+    total = db.scalar(select(func.count()).select_from(query.order_by(None).subquery())) or 0
+    rows = [standard for standard, _ in db.execute(query.limit(limit).offset(offset))]
     return StandardPage(total=total, limit=limit, offset=offset, items=rows)
 
 
@@ -109,6 +102,39 @@ def get_standard(standard_pk: int, db: DbSession, user: CurrentUser) -> Standard
     if standard is None:
         raise HTTPException(status_code=404, detail="Standard not found")
     return standard
+
+
+@router.get(
+    "/{standard_pk}/history",
+    response_model=StandardHistory,
+    summary="Every change to a record, and the other editions/amendments/corrigenda of it",
+)
+def standard_history(standard_pk: int, db: DbSession, user: CurrentUser) -> StandardHistory:
+    standard = db.get(Standard, standard_pk)
+    if standard is None:
+        raise HTTPException(status_code=404, detail="Standard not found")
+    changes = list(
+        db.scalars(
+            select(ChangeRecord)
+            .where(ChangeRecord.standard_pk == standard.id)
+            .order_by(ChangeRecord.id)
+        )
+    )
+    family = []
+    if standard.family:
+        family = list(
+            db.scalars(
+                select(Standard)
+                .where(
+                    Standard.source_id == standard.source_id,
+                    Standard.family == standard.family,
+                )
+                .order_by(Standard.first_seen_run_id, Standard.standard_id)
+            )
+        )
+    return StandardHistory.model_validate(
+        {"standard": standard, "changes": changes, "family": family}, from_attributes=True
+    )
 
 
 @router.patch(

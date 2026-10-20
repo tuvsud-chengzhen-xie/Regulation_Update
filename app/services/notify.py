@@ -34,11 +34,30 @@ from app.services import training
 logger = logging.getLogger(__name__)
 
 CHANGE_LABELS = {
-    "added": "New / updated standard",
+    "added": "New standard",
+    "updated": "New edition / amendment / corrigendum",
     "withdrawn": "Withdrawn",
+    "superseded": "Superseded (replaced by a newer publication)",
     "reinstated": "Reinstated",
     "modified": "Details changed",
 }
+
+
+def describe_relation(change: ChangeRecord) -> str | None:
+    """One line saying how a change relates to other publications."""
+    details = change.details or {}
+    if details.get("supersededBy"):
+        return "replaced by " + ", ".join(details["supersededBy"])
+    if details.get("amends"):
+        label = details.get("relation") or "modification"
+        return f"{label} to {details['amends']}"
+    if details.get("supersedes"):
+        return "replaces " + ", ".join(details["supersedes"])
+    if details.get("relation") == "new_edition" and details.get("relatedStandards"):
+        return "new edition of " + ", ".join(details["relatedStandards"][:3])
+    if details.get("fields"):
+        return "changed: " + ", ".join(details["fields"])
+    return None
 
 
 # --- matching ---------------------------------------------------------------
@@ -165,10 +184,12 @@ def render_digest(
     ]
     by_type: dict[str, list[str]] = {}
     for change, source, subscription in matched:
+        relation = describe_relation(change)
         entry = (
             f"  - {change.standard_id}  [{source.body} {change.tc_code or source.tc_code}]"
             f"\n      {change.title_en or '(no English title)'}"
-            f"\n      matched your {subscription.type} subscription '{subscription.value}'"
+            + (f"\n      {relation}" if relation else "")
+            + f"\n      matched your {subscription.type} subscription '{subscription.value}'"
         )
         by_type.setdefault(change.change_type, []).append(entry)
 
