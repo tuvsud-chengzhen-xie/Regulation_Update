@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.config import settings
+from app.config import settings, sqlite_path, storage_warnings
 from app.db import SessionLocal, init_db
 from app.routers import export, runs, sources, standards, subscriptions, training, users
 from app.seed import bootstrap
@@ -50,6 +50,15 @@ Annotation activity is captured in parallel as W3C-compliant training data
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    logger.info(
+        "storage: database=%s exports=%s outbox=%s training=%s",
+        sqlite_path(settings.database_url) or "(non-SQLite)",
+        settings.export_dir,
+        settings.outbox_dir,
+        settings.training_data_dir,
+    )
+    for warning in storage_warnings(settings):
+        logger.warning("storage: %s", warning)
     init_db()
     db = SessionLocal()
     try:

@@ -5,6 +5,7 @@ All values can be overridden with environment variables or a local `.env` file.
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -12,6 +13,11 @@ from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# On App Service the code may run from a temporary copy (Oryx extracts the
+# build to /tmp), so data must live on the persistent /home share instead.
+ON_APP_SERVICE = bool(os.environ.get("WEBSITE_SITE_NAME")) and Path("/home").is_dir()
+DATA_ROOT = Path("/home") if ON_APP_SERVICE else BASE_DIR
 
 
 class Settings(BaseSettings):
@@ -23,8 +29,8 @@ class Settings(BaseSettings):
     app_version: str = "1.1.0"
 
     # --- Storage -----------------------------------------------------------
-    database_url: str = f"sqlite:///{BASE_DIR / 'data' / 'standards.db'}"
-    export_dir: Path = BASE_DIR / "data" / "exports"
+    database_url: str = f"sqlite:///{DATA_ROOT / 'data' / 'standards.db'}"
+    export_dir: Path = DATA_ROOT / "data" / "exports"
 
     # --- Extraction --------------------------------------------------------
     # Extraction is always live: every run fetches the real standards-body URLs.
@@ -90,7 +96,7 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_use_tls: bool = True
     email_from: str = "standards-monitor@tuvsud.com"
-    outbox_dir: Path = BASE_DIR / "data" / "outbox"
+    outbox_dir: Path = DATA_ROOT / "data" / "outbox"
     # Portal address used in alert emails; on App Service WEBSITE_HOSTNAME is used if unset.
     public_base_url: str = ""
 
@@ -100,7 +106,7 @@ class Settings(BaseSettings):
     bootstrap_admin_api_key: str = "admin-demo-key"
 
     # --- AI training-data framework (Unified Annotation Framework v1) ------
-    training_data_dir: Path = BASE_DIR / "AI_Training_Data"
+    training_data_dir: Path = DATA_ROOT / "AI_Training_Data"
     training_schema_version: str = "1.1.0"
     training_capture_enabled: bool = True
 
@@ -108,14 +114,37 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     settings = Settings()
-    for directory in (
-        settings.export_dir,
-        settings.outbox_dir,
-        settings.training_data_dir,
-        BASE_DIR / "data",
-    ):
+    directories = [settings.export_dir, settings.outbox_dir, settings.training_data_dir]
+    database = sqlite_path(settings.database_url)
+    if database is not None:
+        directories.append(database.parent)
+    for directory in directories:
         Path(directory).mkdir(parents=True, exist_ok=True)
     return settings
+
+
+def sqlite_path(database_url: str) -> Path | None:
+    prefix = "sqlite:///"
+    if not database_url.startswith(prefix) or ":memory:" in database_url:
+        return None
+    return Path(database_url[len(prefix):])
+
+
+def storage_warnings(settings: Settings) -> list[str]:
+    """Data paths that will not survive an App Service restart."""
+    if not ON_APP_SERVICE:
+        return []
+    paths = {
+        "DATABASE_URL": sqlite_path(settings.database_url),
+        "EXPORT_DIR": settings.export_dir,
+        "OUTBOX_DIR": settings.outbox_dir,
+        "TRAINING_DATA_DIR": settings.training_data_dir,
+    }
+    return [
+        f"{name}={path} is outside /home and is lost on every restart"
+        for name, path in paths.items()
+        if path is not None and not str(Path(path).resolve()).startswith("/home/")
+    ]
 
 
 settings = get_settings()

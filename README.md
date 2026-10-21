@@ -52,16 +52,22 @@ binds it to `0.0.0.0`. Ensure the script is executable before deploying:
 chmod +x startup.sh
 ```
 
-Set these App Service application settings so the SQLite database and files
-created by the application survive restarts and deployments:
+On App Service the database and every file the application writes default to
+the persistent `/home` share (`/home/data/standards.db`, `/home/data/exports`,
+`/home/data/outbox`, `/home/AI_Training_Data`). The code itself may run from a
+temporary copy under `/tmp` (Oryx build), so never point these settings at the
+app folder; the startup log line `storage: ...` shows the paths in use and
+warns if any of them would be lost on restart. To override them:
 
 ```text
-WEBSITES_ENABLE_APP_SERVICE_STORAGE=true
 DATABASE_URL=sqlite:////home/data/standards.db
 EXPORT_DIR=/home/data/exports
 OUTBOX_DIR=/home/data/outbox
 TRAINING_DATA_DIR=/home/AI_Training_Data
 ```
+
+Turn on **Always On** (Configuration > General settings): without it App
+Service unloads an idle app, and the scheduled runs inside it never fire.
 
 Set production values for `BOOTSTRAP_ADMIN_EMAIL` and
 `BOOTSTRAP_ADMIN_API_KEY` before the first startup. Configure
