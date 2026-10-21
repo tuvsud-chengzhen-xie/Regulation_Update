@@ -56,6 +56,11 @@ _ERROR_PAGE_MARKERS = (
     "504 gateway time-out",
 )
 
+_UPLOAD_HINT = (
+    "The site refuses automated access: open the source URL in your browser, wait for "
+    "the list to appear, save it (Ctrl+S, 'Webpage, Complete') and upload the .html file "
+    "on the Sources page"
+)
 _INSTALL_HINT = (
     "browser-assisted fetching needs Playwright: "
     "`pip install playwright && python -m playwright install --with-deps chromium`"
@@ -174,8 +179,10 @@ def classify_http_exception(exc: Exception, url: str) -> FetchError:
     text = str(exc) or exc.__class__.__name__
     if isinstance(exc, httpx.HTTPStatusError):
         status = exc.response.status_code
+        hint = f". {_UPLOAD_HINT}." if status in (401, 403) else ""
         return FetchError(
-            f"HTTP {status} from {url}", cause=status_cause(status), url=url, http_status=status
+            f"HTTP {status} from {url}{hint}", cause=status_cause(status), url=url,
+            http_status=status,
         )
     if isinstance(exc, httpx.TimeoutException):
         return FetchError(f"timed out fetching {url}: {text}", cause=CAUSE_TIMEOUT, url=url)
@@ -201,11 +208,12 @@ def check_content(payload: bytes, *, url: str, body: str, transport: str) -> Non
         )
     head = decode(payload[:6000])
     if looks_like_challenge(head):
-        hint = (
-            "Switch this source to the browser transport (fetch_strategy='browser')"
-            if transport == "http"
-            else "It needs an allow-listed egress IP or vendor API access from this host"
-        )
+        if transport == "upload":
+            hint = "The uploaded file is the site's verification page, not the catalogue"
+        elif transport == "http":
+            hint = "Switch this source to the browser transport, or: " + _UPLOAD_HINT
+        else:
+            hint = _UPLOAD_HINT
         raise FetchError(
             f"{body or 'source'} returned an interstitial check for {url}. {hint}; no data "
             f"was captured and existing records were left untouched.",
@@ -391,9 +399,8 @@ class BrowserSession:
         if looks_like_challenge(html):
             raise FetchError(
                 f"{body or 'source'} was still showing an interstitial check after "
-                f"{settings.browser_challenge_wait_seconds:g}s at {url}. It needs an "
-                f"allow-listed egress IP or vendor API access from this host; no data was "
-                f"captured and existing records were left untouched.",
+                f"{settings.browser_challenge_wait_seconds:g}s at {url}. {_UPLOAD_HINT}; no "
+                f"data was captured and existing records were left untouched.",
                 cause=CAUSE_CHALLENGE,
                 url=url,
                 transient=False,

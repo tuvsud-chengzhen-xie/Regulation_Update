@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="/ds/shell.css">
 <link rel="stylesheet" href="/ds/nudges.css">
 <!-- App-specific styles last so they can override design-system defaults. -->
-<link rel="stylesheet" href="/static/app.css?v=1.1.0">
+<link rel="stylesheet" href="/static/app.css?v=1.1.1">
 </head>
 <body>
 
@@ -407,21 +407,30 @@
             <i>jurisdiction</i> page. Only the bodies' own sites are accepted. Several at
             once: <code>POST /api/sources/import</code>.
         </p>
+        <p class="muted" style="margin:var(--space-2) 0 0;font-size:var(--font-size-sm)">
+            <b>Sites that block automated access</b> (WSTDA, BIFMA/MadCAD, ALI): open the
+            source link in your browser, wait for the list, press <kbd>Ctrl</kbd>+<kbd>S</kbd>
+            and choose <i>Webpage, Complete</i>, then use <b>Upload page</b> on that row.
+            Set its transport to <i>manual</i> so scheduled runs stop reporting it as failed.
+        </p>
+        <input type="file" id="src-upload-file" accept=".html,.htm,.xml,.xls,.xlsx,.csv,.json" hidden>
     </div>
 
     <div class="card">
         <div data-role="result" id="src-result">
             <div class="tbl-wrap">
-                <table class="tbl" id="t-sources" style="min-width:1060px">
+                <table class="tbl" id="t-sources" style="min-width:1180px">
                     <colgroup>
                         <col style="width:84px"><col style="width:150px"><col>
                         <col style="width:96px"><col style="width:86px">
-                        <col style="width:96px"><col style="width:200px"><col style="width:136px">
+                        <col style="width:110px"><col style="width:200px"><col style="width:136px">
+                        <col style="width:118px">
                     </colgroup>
                     <thead><tr>
                         <th>Body</th><th>TC / SC code</th><th>Group name</th>
                         <th class="num">Standards</th><th class="num">Current</th>
                         <th>Transport</th><th>Last result</th><th>Last run (UTC)</th>
+                        <th title="For sites that block automated access: upload the page saved from your browser">Page upload</th>
                     </tr></thead>
                     <tbody></tbody>
                 </table>
@@ -553,6 +562,6 @@
 
 <script src="/ds/nudges.js"></script>
 <script src="/ds/shell.js"></script>
-<script src="/static/app.js?v=1.1.0"></script>
+<script src="/static/app.js?v=1.1.1"></script>
 </body>
 </html>

@@ -43,25 +43,27 @@ COMMITTEE_RE = re.compile(r"^ISO(?:/IEC)?[/\s](?:TC|PC|JTC)\s*\d", re.IGNORECASE
 STAGE_RE = re.compile(r"^\d{2}\.\d{2}$")
 # Withdrawn editions stay on the committee page, flagged inline as well.
 WITHDRAWN_MARKER_RE = re.compile(r"\[\s*withdrawn\s*\]", re.IGNORECASE)
+UNDER_DEVELOPMENT_MARKER_RE = re.compile(r"\[\s*under development\s*\]", re.IGNORECASE)
 
 
 def stage_class(stage: str | None) -> str:
     """Classify an ISO harmonised stage code.
 
-    00–50 are stages of development, 60 is publication, 90 is periodic review
-    (still in force), 95 is withdrawal. The committee page carries all of them
-    regardless of the catalogue filter, so the stage — not the page — decides
-    what counts as a current standard.
+    00–50 are stages of development, 60.00 is "under publication" (approved
+    but not yet issued, so the reference has no year), 60.60 is publication,
+    90 is periodic review (still in force), 95 is withdrawal. The committee
+    page carries all of them regardless of the catalogue filter, so the
+    stage — not the page — decides what counts as a current standard.
     """
     if not stage:
         return "unknown"
     try:
-        major = int(stage.split(".")[0])
+        major, minor = (int(part) for part in stage.split(".")[:2])
     except ValueError:
         return "unknown"
     if major >= 95:
         return "withdrawn"
-    if major >= 60:
+    if major > 60 or (major == 60 and minor >= 60):
         return "current"
     return "developing"
 
@@ -109,7 +111,7 @@ class ISOExtractor(BaseExtractor):
             # both correctly excluded, so neither is an extraction failure.
             if state == "withdrawn" or WITHDRAWN_MARKER_RE.search(cells[0]):
                 continue
-            if state == "developing":
+            if state == "developing" or UNDER_DEVELOPMENT_MARKER_RE.search(" ".join(cells)):
                 continue
 
             # The catalogue marks each entry up explicitly; fall back to

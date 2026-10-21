@@ -160,6 +160,7 @@ def test_iso_stage_decides_what_is_current():
     from app.extractors.iso import stage_class
 
     assert stage_class("60.60") == "current"      # published
+    assert stage_class("60.00") == "developing"   # under publication: no year yet
     assert stage_class("90.93") == "current"      # under periodic review, in force
     assert stage_class("95.99") == "withdrawn"
     assert stage_class("20.00") == "developing"   # approved work item

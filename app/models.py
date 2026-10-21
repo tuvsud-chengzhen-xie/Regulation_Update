@@ -80,6 +80,8 @@ POLICY_YEAR_THEN_STAMP = "year_then_stamp"
 # real headless Chromium first, which ISO, BIFMA, ALI and WSTDA require.
 FETCH_HTTP = "http"
 FETCH_BROWSER = "browser"
+# Sites that refuse automated access: skipped by runs, updated by page upload.
+FETCH_MANUAL = "manual"
 
 # What an extraction issue cost us.
 #   record - the entry is NOT in the database

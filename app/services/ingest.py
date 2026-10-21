@@ -18,8 +18,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.extractors.base import ExtractedStandard, normalize_standard_id
-from app.extractors.fetching import CAUSE_LABELS, FetchError
+from app.extractors.base import ExtractedStandard, dedupe, normalize_standard_id
+from app.extractors.fetching import CAUSE_LABELS, FetchError, check_content
 from app.extractors.references import KIND_CORRIGENDUM, ReferenceInfo, describe_reference
 from app.extractors.registry import ExtractorError, build_context, extract_source, get_extractor
 from app.models import (
@@ -30,6 +30,7 @@ from app.models import (
     CHANGE_UPDATED,
     CHANGE_WITHDRAWN,
     FETCH_HTTP,
+    FETCH_MANUAL,
     ISSUE_SOURCE,
     POLICY_SOURCE_DATE,
     STATUS_CURRENT,
@@ -137,6 +138,35 @@ def start_background_run(
     return run_id
 
 
+def run_upload(
+    db: Session,
+    *,
+    source_id: int,
+    payload: bytes,
+    allow_mass_withdrawal: bool = False,
+    send_alerts: bool = True,
+) -> ExtractionRun:
+    """Apply a catalogue page an administrator saved from their own browser.
+
+    For sites that refuse automated access: the page goes through the same
+    parser, validation and update rule as a fetched one.
+    """
+    if not _run_lock.acquire(blocking=False):
+        raise RunInProgress("A monitoring run is already in progress.")
+    try:
+        run = create_run(db, trigger="upload")
+        return execute_run(
+            db,
+            run,
+            source_ids=[source_id],
+            send_alerts=send_alerts,
+            allow_mass_withdrawal=allow_mass_withdrawal,
+            uploads={source_id: payload},
+        )
+    finally:
+        _run_lock.release()
+
+
 def create_run(db: Session, *, trigger: str) -> ExtractionRun:
     run = ExtractionRun(
         started_at=datetime.now(timezone.utc),
@@ -189,12 +219,15 @@ def execute_run(
     send_alerts: bool = True,
     session_id: str | None = None,
     allow_mass_withdrawal: bool = False,
+    uploads: dict[int, bytes] | None = None,
 ) -> ExtractionRun:
     session_id = session_id or training.SERVER_SESSION_ID
     moment = datetime.now(timezone.utc)
     run_id = run.id
 
-    query = select(Source).where(Source.is_active.is_(True)).order_by(Source.body, Source.tc_code)
+    query = select(Source).order_by(Source.body, Source.tc_code)
+    if not uploads:
+        query = query.where(Source.is_active.is_(True))
     if source_ids:
         query = query.where(Source.id.in_(source_ids))
     sources = list(db.scalars(query))
@@ -217,6 +250,7 @@ def execute_run(
                     moment=moment,
                     session_id=session_id,
                     allow_mass_withdrawal=allow_mass_withdrawal,
+                    upload=(uploads or {}).get(source.id),
                 )
                 # Commit per source: progress is visible while the run is
                 # going, and a crash later in the run keeps what was done.
@@ -272,20 +306,32 @@ def _process_source(
     moment: datetime,
     session_id: str,
     allow_mass_withdrawal: bool = False,
+    upload: bytes | None = None,
 ) -> None:
     started = time.perf_counter()
-    strategy = source.fetch_strategy or FETCH_HTTP
+    strategy = "upload" if upload is not None else (source.fetch_strategy or FETCH_HTTP)
     result = SourceRunResult(run_id=run.id, source_id=source.id, fetch_strategy=strategy)
     db.add(result)
+
+    if upload is None and strategy == FETCH_MANUAL:
+        result.status = "skipped"
+        result.error = "Manual source: updated only by uploading its catalogue page."
+        db.flush()
+        return
 
     existing = list(db.scalars(select(Standard).where(Standard.source_id == source.id)))
     current_count = sum(1 for s in existing if s.status == STATUS_CURRENT)
     is_first_capture = not existing
 
     try:
-        strategy = get_extractor(source).strategy()
-        result.fetch_strategy = strategy
-        parsed = extract_source(source, ctx)
+        if upload is not None:
+            check_content(upload, url=source.url, body=source.body, transport="upload")
+            parsed = get_extractor(source).parse(upload)
+            parsed.rows = dedupe(parsed.rows)
+        else:
+            strategy = get_extractor(source).strategy()
+            result.fetch_strategy = strategy
+            parsed = extract_source(source, ctx)
         extracted = parsed.rows
         if not extracted and existing:
             # A source that suddenly returns nothing is far more likely to be

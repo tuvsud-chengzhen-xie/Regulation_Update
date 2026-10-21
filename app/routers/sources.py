@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from sqlalchemy import func, select
 
 from app.extractors.registry import ALLOWED_HOSTS, DEFAULT_FETCH_STRATEGY, SUPPORTED_BODIES
@@ -18,10 +18,12 @@ from app.models import (
     SourceRunResult,
     Standard,
 )
-from app.schemas import SourceImportResult, SourceIn, SourceOut, SourceUpdate
+from app.schemas import RunOut, SourceImportResult, SourceIn, SourceOut, SourceUpdate
 from app.security import AdminUser, CurrentUser, DbSession
 
 router = APIRouter(prefix="/api/sources", tags=["sources"])
+
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 
 
 def _to_out(db, source: Source) -> SourceOut:
@@ -148,6 +150,40 @@ def import_sources(payload: list[SourceIn], db: DbSession, admin: AdminUser) -> 
     return SourceImportResult(
         created=[_to_out(db, source) for source in created], skipped=skipped, errors=errors
     )
+
+
+@router.post(
+    "/{source_id}/upload",
+    response_model=RunOut,
+    summary="Apply a catalogue page saved from a browser (administrators only)",
+)
+async def upload_source_page(
+    source_id: int,
+    db: DbSession,
+    admin: AdminUser,
+    file: UploadFile = File(description="The catalogue page saved as HTML (or the CEN export)"),
+    allow_mass_withdrawal: bool = Form(default=False),
+):
+    """For sites that refuse automated access: open the source URL in a normal
+    browser, wait for the list, save it (Ctrl+S, "Webpage, Complete" - which keeps
+    the rendered list) and upload the .html file. It goes through the same
+    parser, validation and update rule as a fetch."""
+    from app.services.ingest import RunInProgress, run_upload
+
+    source = db.get(Source, source_id)
+    if source is None:
+        raise HTTPException(status_code=404, detail="Source not found")
+    payload = await file.read(MAX_UPLOAD_BYTES + 1)
+    if not payload:
+        raise HTTPException(status_code=422, detail="The uploaded file is empty.")
+    if len(payload) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="The uploaded file is larger than 20 MB.")
+    try:
+        return run_upload(
+            db, source_id=source.id, payload=payload, allow_mass_withdrawal=allow_mass_withdrawal
+        )
+    except RunInProgress as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.patch("/{source_id}", response_model=SourceOut)

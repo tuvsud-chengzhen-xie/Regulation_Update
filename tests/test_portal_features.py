@@ -151,3 +151,63 @@ def test_standard_history_links_a_record_to_its_family(client):
     assert {s["standard_id"] for s in history["family"]} >= {"EN 16121:2023",
                                                              "EN 16121:2023/AC:2025"}
     assert history["changes"] and history["changes"][0]["change_type"] == "added"
+
+
+def source_id(client, tc_code):
+    return next(s["id"] for s in client.get("/api/sources", headers=ADMIN).json()
+                if s["tc_code"] == tc_code)
+
+
+def test_a_blocked_site_can_be_updated_from_a_saved_page(client, payloads):
+    from app.extractors.base import SAMPLE_DIR
+
+    wstda = source_id(client, "WSTDA")
+    client.patch(f"/api/sources/{wstda}", json={"fetch_strategy": "manual"},
+                 headers=ADMIN).raise_for_status()
+    payloads.set("WSTDA", None)  # the live fetch would fail; manual means it is not tried
+
+    run = client.post("/api/runs", json={}, headers=ADMIN).json()
+    result = next(r for r in run["results"] if r["source_id"] == wstda)
+    assert result["status"] == "skipped"
+
+    page = (SAMPLE_DIR / "wstda_products.html").read_bytes()
+    uploaded = client.post(
+        f"/api/sources/{wstda}/upload",
+        files={"file": ("products.html", page, "text/html")},
+        headers=ADMIN,
+    )
+    assert uploaded.status_code == 200, uploaded.text
+    body = uploaded.json()
+    assert body["trigger"] == "upload"
+    assert body["results"][0]["status"] == "success"
+    assert body["results"][0]["extracted_count"] > 0
+
+
+def test_an_uploaded_verification_page_is_rejected(client):
+    wstda = source_id(client, "WSTDA")
+    page = b"<html><head><title>Just a moment...</title></head><body></body></html>"
+    run = client.post(
+        f"/api/sources/{wstda}/upload",
+        files={"file": ("products.html", page, "text/html")},
+        headers=ADMIN,
+    ).json()
+    result = run["results"][0]
+    assert (result["status"], result["error_cause"]) == ("failed", "challenge")
+    assert "verification page" in result["error"]
+
+
+def test_iso_entries_still_under_publication_are_not_captured():
+    from types import SimpleNamespace
+
+    from app.extractors.iso import ISOExtractor
+
+    html = """<table>
+      <tr><td><div class="entry-name">ISO 4211-6:2025</div>
+              <div class="entry-description">Furniture - Part 6</div></td><td>60.60</td></tr>
+      <tr><td><div class="entry-name">ISO 4211-7</div> [Under development]
+              <div class="entry-description">Furniture - Part 7</div></td><td>60.00</td></tr>
+    </table> catalogue"""
+    extractor = ISOExtractor(SimpleNamespace(tc_code="ISO/TC 136", url="https://x", options={}))
+    result = extractor.parse(html.encode())
+    assert [r.standard_id for r in result.rows] == ["ISO 4211-6:2025"]
+    assert not result.issues

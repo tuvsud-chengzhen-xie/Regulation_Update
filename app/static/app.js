@@ -792,12 +792,19 @@
 
             const health = (r) => {
                 if (!r.last_status) return '<span class="muted">not run yet</span>';
+                if (r.last_status === "skipped") return '<span class="badge is-skipped">manual</span>';
                 if (r.last_status !== "failed") return `<span class="badge is-success">ok</span>`;
                 const streak = r.consecutive_failures > 1 ? ` ×${r.consecutive_failures}` : "";
                 return `<span class="badge is-failed" title="${esc(r.last_error)}">${
                     esc((r.last_error_cause || "failed").replace(/_/g, " "))}${streak}</span>` +
                     (r.last_success_at ? ` <span class="muted">ok ${when(r.last_success_at).slice(0, 10)}</span>` : "");
             };
+            const admin = state.me && state.me.role === "admin";
+            const transport = (r) => admin
+                ? `<select class="field" data-transport="${r.id}" aria-label="Transport">${
+                    ["http", "browser", "manual"].map((t) =>
+                        `<option${t === r.fetch_strategy ? " selected" : ""}>${t}</option>`).join("")}</select>`
+                : `<span class="srcbadge">${esc(r.fetch_strategy)}</span>`;
             const shown = state.src.body ? rows.filter((r) => r.body === state.src.body) : rows;
             tbody.innerHTML = shown.map((r) =>
                 `<tr><td>${bodyBadge(r.body)}</td>
@@ -806,13 +813,38 @@
                          <a href="${esc(r.url)}" target="_blank" rel="noopener">source</a></td>
                      <td class="num">${num(r.standard_count)}</td>
                      <td class="num">${num(r.current_count)}</td>
-                     <td><span class="srcbadge">${esc(r.fetch_strategy)}</span></td>
+                     <td>${transport(r)}</td>
                      <td>${health(r)}</td>
-                     <td class="muted">${when(r.last_run_at) || "—"}</td></tr>`).join("");
-            if (!shown.length) emptyRow(tbody, 8, "No sources.");
+                     <td class="muted">${when(r.last_run_at) || "—"}</td>
+                     <td>${admin ? `<button class="btn btn-sm" data-upload="${r.id}">Upload page</button>` : ""}</td></tr>`).join("");
+            if (!shown.length) emptyRow(tbody, 9, "No sources.");
         } catch (err) {
-            emptyRow(tbody, 8, "Could not load sources."); toastError(err);
+            emptyRow(tbody, 9, "Could not load sources."); toastError(err);
         } finally { pending($("#src-result"), false); }
+    }
+
+    async function uploadSourcePage(sourceId, file) {
+        const form = new FormData();
+        form.append("file", file);
+        showToast(`Applying ${esc(file.name)}…`, { type: "info", duration: 2500 });
+        try {
+            const res = await fetch(`/api/sources/${encodeURIComponent(sourceId)}/upload`, {
+                method: "POST", headers: { "X-API-Key": state.key }, body: form,
+            });
+            const run = await res.json();
+            if (!res.ok) throw new Error(run.detail || res.statusText);
+            const result = run.results[0] || {};
+            if (result.status === "failed") {
+                showToast(`Upload not applied: ${esc(result.error || "could not be parsed")}`,
+                          { type: "error", duration: 10000 });
+            } else {
+                showToast(`Run #${run.id}: ${num(result.extracted_count)} standards read — ` +
+                          `${run.added_count} new, ${run.updated_count} updated, ` +
+                          `${run.withdrawn_count + run.superseded_count} withdrawn/superseded.`,
+                          { type: "success", duration: 6000 });
+            }
+            await Promise.all([loadSources(), loadStandards(), loadChanges(), loadIssues()]);
+        } catch (err) { toastError(err); }
     }
 
     async function addSource(e) {
@@ -1016,6 +1048,29 @@
     $("#sch-frequency").addEventListener("change", syncScheduleForm);
     $("#schedule-form").addEventListener("submit", saveSchedule);
     $("#src-add").addEventListener("submit", addSource);
+    let uploadTarget = null;
+    $("#t-sources").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-upload]");
+        if (!btn) return;
+        uploadTarget = btn.dataset.upload;
+        $("#src-upload-file").value = "";
+        $("#src-upload-file").click();
+    });
+    $("#src-upload-file").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file && uploadTarget) uploadSourcePage(uploadTarget, file);
+    });
+    $("#t-sources").addEventListener("change", async (e) => {
+        const select = e.target.closest("[data-transport]");
+        if (!select) return;
+        try {
+            await api(`/api/sources/${encodeURIComponent(select.dataset.transport)}`, {
+                method: "PATCH", body: JSON.stringify({ fetch_strategy: select.value }),
+            });
+            showToast(`Transport set to ${esc(select.value)}`, { type: "success" });
+            loadSources();
+        } catch (err) { toastError(err); }
+    });
     $("#prev").onclick = () => {
         state.std.offset = Math.max(0, state.std.offset - PAGE_SIZE);
         loadStandards();

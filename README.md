@@ -101,7 +101,7 @@ Each source uses one of two transports, chosen by what its site requires:
 | **CEN** | downloadable export | Parses the CEN/TC "XLS export", which is SpreadsheetML XML (with fallbacks for real `.xls`/`.xlsx` and delimited text). Columns `Reference / Date / Title`. |
 | **ASME** | filterable website | The `find-codes-standards` page is a Vue front end over the public `/api/products?type=Codes-Standards` catalogue; the extractor pages through it and filters by designator (`PASE`, `B94`, `B107`, `A112.18.1/CSA B125.1`), keeping the latest edition of each. |
 | **ASTM** | website | Parses subcommittee jurisdiction pages, e.g. `F2813-18(2023) Standard Specification for …`; skips `See also WK…`, work items and `(Withdrawn ….)` entries. |
-| **ISO** | filterable website, browser | The "Published only" filter is the `/p/1/u/0/w/0/d/0` URL suffix and is enforced on every fetch. The committee page nonetheless carries every stage, so the **stage code decides**: 60.xx/90.xx are captured, 95.xx (withdrawn) and 00–50.xx (still under development) are excluded. Reference and title come from ISO's own `.entry-name` / `.entry-description` markup. |
+| **ISO** | filterable website, browser | The "Published only" filter is the `/p/1/u/0/w/0/d/0` URL suffix and is enforced on every fetch. The committee page nonetheless carries every stage, so the **stage code decides**: 60.60/90.xx are captured, 95.xx (withdrawn), 60.00 (approved but still under publication, so the reference has no year yet) and 00–50.xx (still under development) are excluded. Reference and title come from ISO's own `.entry-name` / `.entry-description` markup. |
 | **BIFMA** | website, browser | MadCAD storefront listing → `BIFMA G.81-2026`. Companion documents (PCRs, guidance manuals) are not standards and are skipped. |
 | **ALI** | website, browser | A14 listing → `ANSI/ALI A14.1-2018`. |
 | **WSTDA** | website, browser | Product listing with "Current Edition" year → `WSTDA-WS-1-2015`. |
@@ -283,6 +283,17 @@ The portal shows it all: **Issues > Source fetch failures** lists each failed
 source with cause, HTTP status, every attempt and its last success; the
 **Sources** page shows each source's last result and failure streak
 (`GET /api/runs/source-failures`, `GET /api/sources`).
+
+### Sites that refuse automated access
+
+WSTDA, MadCAD (BIFMA) and ALI answer automated requests with HTTP 403 or an
+anti-bot check, from Azure and from the corporate network alike. The app does
+not try to get past such checks. Instead, an administrator opens the source
+link in a normal browser, saves the page (Ctrl+S, *Webpage, Complete*) and
+clicks **Upload page** on the Sources page (`POST /api/sources/{id}/upload`).
+The file goes through the same parser, validation and update rule as a fetch;
+an uploaded verification page is rejected. Setting the source's transport to
+`manual` makes scheduled runs skip it instead of reporting it as failed.
 
 ## Knowing what was missed
 

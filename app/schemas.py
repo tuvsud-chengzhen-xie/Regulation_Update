@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from app.models import (
     FETCH_BROWSER,
     FETCH_HTTP,
+    FETCH_MANUAL,
     ISSUE_FIELD,
     ISSUE_RECORD,
     ISSUE_SOURCE,
@@ -25,7 +26,7 @@ StatusLiteral = Literal[STATUS_CURRENT, STATUS_WITHDRAWN]
 RoleLiteral = Literal[ROLE_ADMIN, ROLE_USER]
 PolicyLiteral = Literal[POLICY_SOURCE_DATE, POLICY_YEAR_THEN_STAMP]
 SubscriptionType = Literal["standard", "committee", "body", "keyword"]
-FetchStrategy = Literal[FETCH_HTTP, FETCH_BROWSER]
+FetchStrategy = Literal[FETCH_HTTP, FETCH_BROWSER, FETCH_MANUAL]
 IssueScope = Literal[ISSUE_RECORD, ISSUE_FIELD, ISSUE_SOURCE]
 
 
