@@ -127,6 +127,7 @@
         if (d.supersedes && d.supersedes.length) return `replaces <b>${list(d.supersedes)}</b>`;
         if (d.relation === "new_edition") return `new edition of ${list((d.relatedStandards || []).slice(0, 2))}`;
         if (d.relation === "consolidated_amendment") return "consolidated with amendment";
+        if (d.relation === "reaffirmation") return "reaffirmed";
         if (d.relation === "removed_from_source") return "no longer listed by the source";
         if (d.relation === "reappeared_in_source") return `back in the source (withdrawn in run #${esc(d.withdrawnInRunId)})`;
         if (d.changes && d.changes.length) {

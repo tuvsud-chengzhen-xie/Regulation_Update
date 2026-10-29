@@ -107,6 +107,9 @@ def by_id(db) -> dict[str, Standard]:
         ("ISO", "ISO 105-F01:2001", "ISO 105-F01", "2001", "Standard", None),
         ("ASTM", "ASTM F2388-21(2026)", "ASTM F2388", "21", "Standard", None),
         ("ALI", "ANSI/ALI A14.1-2018", "ANSI/ALI A14.1", "2018", "Standard", None),
+        ("BIFMA", "BIFMA X5.1-2017(R2022)", "BIFMA X5.1", "2017", "Standard", None),
+        ("ALI", "ANSI/ALI A14.1-2026 Errata", "ANSI/ALI A14.1", "2026", "Corrigendum",
+         "ANSI/ALI A14.1-2026"),
         ("WSTDA", "WSTDA-WS-1-2015", "WSTDA-WS-1", "2015", "Standard", None),
     ],
 )
@@ -115,6 +118,64 @@ def test_references_are_split_into_family_edition_and_kind(
 ):
     info = describe_reference(reference, body)
     assert (info.family, info.edition, info.kind, info.amends) == (family, edition, kind, amends)
+
+
+def test_reaffirmation_year_is_read():
+    assert describe_reference("BIFMA X5.1-2017(R2022)", "BIFMA").reaffirmed == "2022"
+    assert describe_reference("BIFMA X5.1-2017", "BIFMA").reaffirmed is None
+
+
+def test_startup_repair_removes_yearless_iso_and_reads_reaffirmations(clean_db):
+    """Rows stored by the earlier parsers are corrected in place."""
+    from app.models import ExtractionRun
+    from app.services.ingest import repair_misread_references
+
+    iso = Source(body="ISO", tc_code="ISO/TC 61/SC 4", url="https://www.iso.org/x")
+    bifma = Source(body="BIFMA", tc_code="BIFMA", url="https://www.madcad.com/x")
+    run = ExtractionRun(status="success", trigger="manual", mode="live",
+                        added_count=2, withdrawn_count=1)
+    clean_db.add_all([iso, bifma, run])
+    clean_db.flush()
+    draft = Standard(source_id=iso.id, standard_id="ISO 22702", standard_id_norm="ISO 22702",
+                     status=STATUS_WITHDRAWN, publish_date="2026/10")
+    real = Standard(source_id=iso.id, standard_id="ISO 22702:2026",
+                    standard_id_norm="ISO 22702:2026", status=STATUS_CURRENT,
+                    publish_date="2026/10", supersedes="ISO 22702, ISO 22702:2018")
+    chair = Standard(source_id=bifma.id, standard_id="BIFMA X5.1-2017",
+                     standard_id_norm="BIFMA X5.1-2017", status=STATUS_CURRENT,
+                     publish_date="2017", title_en="(R2022) Office Chairs")
+    clean_db.add_all([draft, real, chair])
+    clean_db.flush()
+    clean_db.add_all([
+        ChangeRecord(run_id=run.id, source_id=iso.id, standard_pk=draft.id,
+                     standard_id=draft.standard_id, change_type="withdrawn", details={}),
+        ChangeRecord(run_id=run.id, source_id=iso.id, standard_pk=real.id,
+                     standard_id=real.standard_id, change_type="added",
+                     details={"supersedes": ["ISO 22702", "ISO 22702:2018"]}),
+        ChangeRecord(run_id=run.id, source_id=bifma.id, standard_pk=chair.id,
+                     standard_id=chair.standard_id, change_type="added", details={}),
+    ])
+    clean_db.commit()
+
+    assert repair_misread_references(clean_db) == {
+        "removed_yearless_iso": 1, "reaffirmations_read": 1
+    }
+    rows = by_id(clean_db)
+    assert "ISO 22702" not in rows
+    assert rows["ISO 22702:2026"].supersedes == "ISO 22702:2018"
+    fixed = rows["BIFMA X5.1-2017(R2022)"]
+    assert (fixed.title_en, fixed.publish_date) == ("Office Chairs", "2022")
+    assert fixed.standard_id_norm == "BIFMA X5.1-2017(R2022)"
+    clean_db.refresh(run)
+    assert run.withdrawn_count == 0
+    changes = {c.standard_id: c for c in clean_db.query(ChangeRecord).all()}
+    assert "ISO 22702" not in changes
+    assert changes["ISO 22702:2026"].details["supersedes"] == ["ISO 22702:2018"]
+    assert "BIFMA X5.1-2017(R2022)" in changes
+    # Idempotent.
+    assert repair_misread_references(clean_db) == {
+        "removed_yearless_iso": 0, "reaffirmations_read": 0
+    }
 
 
 # --- CEN validation -----------------------------------------------------------

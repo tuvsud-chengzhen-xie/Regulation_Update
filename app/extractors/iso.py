@@ -161,14 +161,17 @@ class ISOExtractor(BaseExtractor):
 
             publish_date = year_from_reference(reference)
             if not publish_date:
-                result.warn(
-                    "missing_publish_date",
-                    "Reference carries no version year, so the internal registration "
-                    "stamp was used instead.",
-                    raw=reference,
+                # ISO assigns the year on publication; a yearless reference is a
+                # draft, and storing it would invent a version.
+                result.fail(
+                    "missing_edition_year",
+                    "Reference carries no edition year, so it is not yet a published "
+                    "edition and no 'Standard ID + Version' could be formed.",
+                    raw=" | ".join(cells),
                     standard_id=reference,
                     location=where,
                 )
+                continue
 
             result.add(
                 ExtractedStandard(
@@ -212,9 +215,10 @@ def _pick_title(cells: list[str], reference: str) -> str | None:
 
 
 def year_from_reference(reference: str) -> str | None:
-    """Latest 4-digit version year inside a reference (handles Amd/Cor suffixes)."""
-    years = re.findall(r":(\d{4})", reference)
-    if years:
-        return max(years)
-    match = re.search(r"\b(19|20)\d{2}\b", reference)
-    return match.group(0) if match else None
+    """Latest 4-digit version year inside a reference (handles Amd/Cor suffixes).
+
+    Only ``:YYYY`` counts: a bare four-digit number is the document number
+    (ISO 2019, ISO 2023-1), never its year.
+    """
+    years = re.findall(r":\s*(\d{4})", reference)
+    return max(years) if years else None

@@ -116,6 +116,73 @@ def test_ali_matches_specification_example():
     row = rows["ANSI/ALI A14.1-2018"]
     assert row.title_en == "Portable Wood Ladder"
     assert row.publish_date == "2018"
+    # The yearless errata link belongs to the only A14.1 edition on the page.
+    assert rows["ANSI/ALI A14.1-2018 Errata"].publish_date == "2018"
+
+
+def _parse_inline(body, html):
+    src = source(body, body, None)
+    result = get_extractor(src).parse(html.encode())
+    return {row.standard_id: row for row in dedupe(result.rows)}, result.issues
+
+
+def test_bifma_reaffirmation_is_part_of_the_version():
+    rows, issues = _parse_inline(
+        "BIFMA",
+        "<ul><li>BIFMA X5.1-2017 (R2022) Office Chairs</li>"
+        "<li>BIFMA X5.4-2020 (R2025) Public and Lounge Seating</li></ul>"
+        '<div class="doc-id">BIFMA X5.11</div><div>Large Occupant Office Chair</div>'
+        "<div>2015 (R2020)</div>",
+    )
+    row = rows["BIFMA X5.1-2017(R2022)"]
+    assert (row.publish_date, row.title_en) == ("2022", "Office Chairs")
+    assert rows["BIFMA X5.4-2020(R2025)"].publish_date == "2025"
+    eleven = rows["BIFMA X5.11-2015(R2020)"]
+    assert (eleven.publish_date, eleven.title_en) == ("2020", "Large Occupant Office Chair")
+    assert not [i for i in issues if i.scope == "record"]
+
+
+def test_ali_live_page_shapes_are_captured():
+    """Run #8: a year rendered as '20 26' and a yearless errata were both lost."""
+    rows, issues = _parse_inline(
+        "ALI",
+        "<ul><li>ANSI/ALI A14.1 - Portable Wood Ladders - 20 26 &bull;</li>"
+        "<li>ANSI/ALI A14.1 Errata &bull;</li>"
+        "<li>ANSI/ALI A14.3-2008 (R2018) Fixed Ladders</li></ul>",
+    )
+    wood = rows["ANSI/ALI A14.1-2026"]
+    assert (wood.title_en, wood.publish_date) == ("Portable Wood Ladders", "2026")
+    assert rows["ANSI/ALI A14.1-2026 Errata"].publish_date == "2026"
+    fixed = rows["ANSI/ALI A14.3-2008(R2018)"]
+    assert (fixed.title_en, fixed.publish_date) == ("Fixed Ladders", "2018")
+    assert not [i for i in issues if i.scope == "record"]
+    assert [i.reason for i in issues] == ["edition_inferred"]
+
+
+def test_ali_errata_is_not_attributed_when_the_edition_is_ambiguous():
+    rows, issues = _parse_inline(
+        "ALI",
+        "<ul><li>ANSI/ALI A14.1-2017 Portable Wood Ladders</li>"
+        "<li>ANSI/ALI A14.1-2026 Portable Wood Ladders</li>"
+        "<li>ANSI/ALI A14.1 Errata</li></ul>",
+    )
+    assert not any("ERRATA" in key.upper() for key in rows)
+    assert [(i.scope, i.reason) for i in issues] == [("record", "missing_edition_year")]
+
+
+def test_iso_yearless_reference_is_reported_not_stored():
+    """Run #1 stored drafts such as 'ISO 22702' under the extraction stamp."""
+    assert year_from_reference("ISO 22702") is None
+    assert year_from_reference("ISO 2019") is None  # document number, not a year
+    rows, issues = _parse_inline(
+        "ISO",
+        "<table><tr><td class='entry-name'>ISO 22702</td>"
+        "<td class='entry-description'>Utility lighters</td><td>60.60</td></tr>"
+        "<tr><td class='entry-name'>ISO 22702:2018</td>"
+        "<td class='entry-description'>Utility lighters</td><td>90.93</td></tr></table>",
+    )
+    assert list(rows) == ["ISO 22702:2018"]
+    assert [(i.reason, i.standard_id) for i in issues] == [("missing_edition_year", "ISO 22702")]
 
 
 def test_wstda_matches_specification_example():
@@ -172,7 +239,7 @@ def test_a_listing_entry_without_an_edition_year_is_reported():
     """It must be reported, never dropped: a dropped entry looks withdrawn."""
     result = parse(source("ALI", "ALI", "ali_a14.html"))
     lost = [i for i in result.issues if i.scope == "record"]
-    assert lost, "the ALI sample lists an errata entry with no edition year"
+    assert lost, "the ALI sample lists an entry with no edition year"
     assert lost[0].reason == "missing_edition_year"
     assert lost[0].raw          # the user can see what the site said
     assert lost[0].location     # and where on the page it was

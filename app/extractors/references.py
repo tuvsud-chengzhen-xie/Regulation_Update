@@ -35,10 +35,14 @@ _SUFFIX_RE = re.compile(
     r"\s*([+/])\s*(AC|COR\s*\d+|A\d+|AMD\s*\d+|DAM\s*\d+)\s*[:\-]\s*(\d{4}|\d{2})\b"
 )
 _COLON_EDITION_RE = re.compile(r"^(?P<family>.+?)\s*:\s*(?P<edition>\d{4})$")
-# ASTM F2813-18(2023), ASME B94.11M-2018, WSTDA-WS-1-2015, ANSI/ALI A14.1-2018
+# ASTM F2813-18(2023), ASME B94.11M-2018, WSTDA-WS-1-2015, ANSI/ALI A14.1-2018,
+# BIFMA X5.1-2017(R2022)
 _DASH_EDITION_RE = re.compile(
-    r"^(?P<family>.+?)-(?P<edition>\d{4}|\d{2})[A-Z]?(?:\(\d{4}\))?(?:E\d+)?$"
+    r"^(?P<family>.+?)-(?P<edition>\d{4}|\d{2})[A-Z]?"
+    r"(?:\s*\(R?(?P<reaffirmed>\d{4})\))?(?:E\d+)?$"
 )
+# ANSI/ALI A14.1-2018 Errata: a correction sheet to that edition.
+_ERRATA_RE = re.compile(r"^(?P<base>.+?)\s+ERRATA$")
 _PREFIX_KINDS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"(^|[\s/])(TS)\b"), KIND_TS),
     (re.compile(r"(^|[\s/])(TR)\b"), KIND_TR),
@@ -59,6 +63,8 @@ class ReferenceInfo:
     corrigenda: tuple[str, ...] = ()
     #: For a stand-alone amendment/corrigendum: the document it modifies.
     amends: str | None = None
+    #: Year the edition was last reaffirmed / reapproved, e.g. (R2022).
+    reaffirmed: str | None = None
 
     @property
     def is_standalone_modification(self) -> bool:
@@ -67,6 +73,17 @@ class ReferenceInfo:
 
 def describe_reference(standard_id: str, body: str | None = None) -> ReferenceInfo:
     text = normalize_standard_id(standard_id)
+    errata = _ERRATA_RE.match(text)
+    if errata:
+        base = describe_reference(errata.group("base"), body)
+        return ReferenceInfo(
+            reference=text,
+            family=base.family,
+            edition=base.edition,
+            kind=KIND_CORRIGENDUM,
+            corrigenda=("ERRATA",),
+            amends=base.reference,
+        )
     matches = list(_SUFFIX_RE.finditer(text))
     head = text[: matches[0].start()].strip() if matches else text
 
@@ -83,7 +100,7 @@ def describe_reference(standard_id: str, body: str | None = None) -> ReferenceIn
         if match.group(1) == "/":
             standalone = match
 
-    family, edition = _split_edition(head, body)
+    family, edition, reaffirmed = _split_edition(head, body)
     kind = _base_kind(family)
     amends = None
     if standalone is not None:
@@ -99,18 +116,19 @@ def describe_reference(standard_id: str, body: str | None = None) -> ReferenceIn
         amendments=tuple(amendments),
         corrigenda=tuple(corrigenda),
         amends=amends,
+        reaffirmed=reaffirmed,
     )
 
 
-def _split_edition(head: str, body: str | None) -> tuple[str, str | None]:
+def _split_edition(head: str, body: str | None) -> tuple[str, str | None, str | None]:
     match = _COLON_EDITION_RE.match(head)
     if match:
-        return match.group("family").strip(), match.group("edition")
+        return match.group("family").strip(), match.group("edition"), None
     if ":" not in head and (body or "").upper() not in _COLON_STYLE_BODIES:
         match = _DASH_EDITION_RE.match(head)
         if match:
-            return match.group("family").strip(), match.group("edition")
-    return head, None
+            return match.group("family").strip(), match.group("edition"), match.group("reaffirmed")
+    return head, None, None
 
 
 def _base_kind(family: str) -> str:

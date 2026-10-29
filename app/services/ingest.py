@@ -10,6 +10,7 @@ its progress, which is committed source by source.
 from __future__ import annotations
 
 import logging
+import re
 import threading
 import time
 from datetime import datetime, timezone
@@ -209,6 +210,114 @@ def backfill_reference_metadata(db: Session) -> int:
     if rows:
         db.commit()
     return len(rows)
+
+
+_ISO_YEAR_RE = re.compile(r":\s*\d{4}")
+_TITLE_REAFFIRMED_RE = re.compile(r"^\(\s*R\s*((?:19|20)\d{2})\s*\)\s*(.*)$", re.IGNORECASE)
+_COUNTERS = {
+    CHANGE_ADDED: "added_count",
+    CHANGE_UPDATED: "updated_count",
+    CHANGE_WITHDRAWN: "withdrawn_count",
+    CHANGE_SUPERSEDED: "superseded_count",
+    CHANGE_REINSTATED: "reinstated_count",
+    CHANGE_MODIFIED: "modified_count",
+}
+
+
+def repair_misread_references(db: Session) -> dict[str, int]:
+    """Correct rows stored by earlier parser versions. Idempotent.
+
+    * ISO references without an edition year were drafts at stage 60.00 that
+      got stored under the extraction stamp; they are not publications, so the
+      rows and their change-log entries are removed.
+    * BIFMA/ALI reaffirmations were left in the title ("(R2022) Office
+      Chairs"); the reaffirmation moves into the reference and publish year.
+    """
+    yearless = [
+        s
+        for s in db.scalars(select(Standard).join(Source).where(Source.body == "ISO"))
+        if not _ISO_YEAR_RE.search(s.standard_id)
+    ]
+    for standard in yearless:
+        _remove_standard(db, standard)
+
+    reaffirmed = 0
+    candidates = db.scalars(
+        select(Standard)
+        .join(Source)
+        .where(Source.body.in_(("BIFMA", "ALI")), Standard.title_en.like("(%"))
+    )
+    for standard in list(candidates):
+        match = _TITLE_REAFFIRMED_RE.match(standard.title_en or "")
+        if not match or "(" in standard.standard_id:
+            continue
+        year, title = match.groups()
+        new_id = f"{standard.standard_id}(R{year})"
+        new_norm = normalize_standard_id(new_id)
+        clash = db.scalar(
+            select(Standard.id).where(
+                Standard.source_id == standard.source_id, Standard.standard_id_norm == new_norm
+            )
+        )
+        if clash:
+            continue
+        edition = describe_reference(standard.standard_id, standard.source.body).edition
+        if standard.publish_date == edition:
+            standard.publish_date = year
+        for change in db.scalars(select(ChangeRecord).where(ChangeRecord.standard_pk == standard.id)):
+            change.standard_id = new_id
+            change.title_en = title or change.title_en
+        standard.standard_id = new_id
+        standard.standard_id_norm = new_norm
+        standard.title_en = title or standard.title_en
+        reaffirmed += 1
+
+    if yearless or reaffirmed:
+        db.commit()
+    return {"removed_yearless_iso": len(yearless), "reaffirmations_read": reaffirmed}
+
+
+def _remove_standard(db: Session, standard: Standard) -> None:
+    """Delete a row that should never have been stored, with its change history."""
+    reference = standard.standard_id
+    for change in list(db.scalars(select(ChangeRecord).where(ChangeRecord.standard_pk == standard.id))):
+        attr = _COUNTERS.get(change.change_type)
+        if attr:
+            run = db.get(ExtractionRun, change.run_id)
+            if run is not None:
+                setattr(run, attr, max((getattr(run, attr) or 0) - 1, 0))
+            result = db.scalar(
+                select(SourceRunResult).where(
+                    SourceRunResult.run_id == change.run_id,
+                    SourceRunResult.source_id == change.source_id,
+                )
+            )
+            if result is not None:
+                setattr(result, attr, max((getattr(result, attr) or 0) - 1, 0))
+        db.delete(change)
+
+    # Drop the reference from the relationships of the rows around it.
+    for other in db.scalars(
+        select(ChangeRecord).where(
+            ChangeRecord.source_id == standard.source_id, ChangeRecord.standard_pk != standard.id
+        )
+    ):
+        details = dict(other.details or {})
+        touched = False
+        for key in ("supersedes", "supersededBy", "relatedStandards"):
+            values = details.get(key)
+            if isinstance(values, list) and reference in values:
+                details[key] = [v for v in values if v != reference]
+                touched = True
+        if touched:
+            other.details = details
+    for other in db.scalars(select(Standard).where(Standard.source_id == standard.source_id)):
+        for attr in ("supersedes", "superseded_by"):
+            listed = [v.strip() for v in (getattr(other, attr) or "").split(",") if v.strip()]
+            if reference in listed:
+                setattr(other, attr, ", ".join(v for v in listed if v != reference) or None)
+    db.delete(standard)
+    db.flush()
 
 
 def execute_run(
@@ -558,6 +667,8 @@ def _relation(info: ReferenceInfo, related: list[Standard], body: str) -> str:
     if info.amends:
         return "corrigendum" if info.kind == KIND_CORRIGENDUM else "amendment"
     editions = {describe_reference(r.standard_id, body).edition for r in related}
+    if info.reaffirmed and info.edition in editions:
+        return "reaffirmation"
     if info.edition and info.edition in editions:
         return "consolidated_amendment"
     return "new_edition"

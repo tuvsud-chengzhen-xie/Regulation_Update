@@ -14,7 +14,11 @@ from app.config import settings, sqlite_path, storage_warnings
 from app.db import SessionLocal, init_db
 from app.routers import export, runs, sources, standards, subscriptions, training, users
 from app.seed import bootstrap
-from app.services.ingest import backfill_reference_metadata, recover_interrupted_runs
+from app.services.ingest import (
+    backfill_reference_metadata,
+    recover_interrupted_runs,
+    repair_misread_references,
+)
 from app.services.scheduler import next_run_time, shutdown_scheduler, start_scheduler
 
 logging.basicConfig(
@@ -68,6 +72,9 @@ async def lifespan(_: FastAPI):
         filled = backfill_reference_metadata(db)
         if filled:
             logger.info("backfilled publication type/family on %d standard(s)", filled)
+        repaired = repair_misread_references(db)
+        if any(repaired.values()):
+            logger.info("repaired misread references: %s", repaired)
     finally:
         db.close()
     start_scheduler()

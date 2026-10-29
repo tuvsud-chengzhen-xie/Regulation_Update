@@ -7,6 +7,10 @@ Listing entries look like:
 or, when the storefront splits the reference and the edition year across
 elements, as an ID line followed by a title line and a year. Both shapes are
 handled. Result: "BIFMA G.81-2026".
+
+A reaffirmed edition is listed as "BIFMA X5.1-2017 (R2022) Office Chairs";
+the reaffirmation is part of the version, so the result is
+"BIFMA X5.1-2017(R2022)" with 2022 as its publish year.
 """
 
 from __future__ import annotations
@@ -22,6 +26,7 @@ ID_RE = re.compile(
     r"^(?:ANSI/)?BIFMA\s+([A-Z]{1,2}[0-9]*(?:\.[0-9A-Z]+)*)(?![A-Za-z])", re.IGNORECASE
 )
 YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
+REAFFIRMED_RE = re.compile(r"\(\s*R\s*((?:19|20)\d{2})\s*\)", re.IGNORECASE)
 # The storefront also sells companion documents that are not standards and
 # carry no edition year of their own.
 NON_STANDARD_RE = re.compile(r"guidance manual|\bPCR\b|price list|poster", re.IGNORECASE)
@@ -50,6 +55,7 @@ class BIFMAExtractor(BaseExtractor):
             where = f"line {index + 1}"
 
             year = _first_year(remainder) or _first_year(" ".join(block))
+            reaffirmed = REAFFIRMED_RE.search(remainder) or REAFFIRMED_RE.search(" ".join(block))
             title = _strip_year(remainder) or _title_from(block)
 
             if not year:
@@ -65,21 +71,25 @@ class BIFMAExtractor(BaseExtractor):
                 )
                 continue
 
+            reference = f"BIFMA {designator}-{year}"
+            if reaffirmed:
+                reference += f"(R{reaffirmed.group(1)})"
+
             if not title:
                 result.warn(
                     "missing_title",
                     "Storefront entry has no readable standard title.",
                     raw=line,
-                    standard_id=f"BIFMA {designator}-{year}",
+                    standard_id=reference,
                     location=where,
                 )
 
             result.add(
                 ExtractedStandard(
-                    standard_id=f"BIFMA {designator}-{year}",
+                    standard_id=reference,
                     tc_code=self.source.tc_code,
                     title_en=title,
-                    publish_date=year,
+                    publish_date=reaffirmed.group(1) if reaffirmed else year,
                     source_url=self.source.url,
                 )
             )
@@ -94,7 +104,7 @@ def _first_year(text: str | None) -> str | None:
 
 
 def _strip_year(text: str) -> str | None:
-    cleaned = YEAR_RE.sub("", text).strip(" -–—,:")
+    cleaned = YEAR_RE.sub("", REAFFIRMED_RE.sub("", text)).strip(" -–—,:")
     return clean_text(cleaned) if cleaned and len(cleaned) > 5 else None
 
 
