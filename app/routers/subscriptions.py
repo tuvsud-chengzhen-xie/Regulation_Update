@@ -6,13 +6,17 @@ per keyword. Users manage their own; administrators may act for anyone.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import select
 
-from app.models import ROLE_ADMIN, AlertLog, Subscription, User
+from app.config import settings
+from app.models import ROLE_ADMIN, AlertLog, ExtractionRun, Subscription, User
 from app.schemas import AlertOut, SubscriptionIn, SubscriptionOut
 from app.security import CurrentUser, DbSession
 from app.services import training
+from app.services.notify import send_email
 
 router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions & alerts"])
 
@@ -118,5 +122,42 @@ def get_alert(alert_id: int, db: DbSession, user: CurrentUser) -> dict:
         "subject": alert.subject,
         "body": alert.body,
         "status": alert.status,
+        "error": alert.error,
         "sent_at": alert.sent_at,
+    }
+
+
+@router.post("/alerts/resend-failed", summary="Retry alerts whose delivery failed")
+def resend_failed_alerts(db: DbSession, user: CurrentUser, all_users: bool = False) -> dict:
+    """Resend failed alerts oldest first, stopping at the first failure.
+
+    A failure usually means the mail server is unreachable, and each further
+    attempt would only wait out another SMTP timeout.
+    """
+    query = select(AlertLog).where(AlertLog.status == "failed").order_by(AlertLog.id)
+    if not (all_users and user.role == ROLE_ADMIN):
+        query = query.where(AlertLog.user_id == user.id)
+    pending = list(db.scalars(query))
+
+    sent, error = 0, None
+    for alert in pending:
+        status, error = send_email(alert.email, alert.subject, alert.body)
+        alert.status = status
+        alert.error = error
+        alert.backend = settings.email_backend
+        alert.sent_at = datetime.now(timezone.utc)
+        if status == "sent":
+            sent += 1
+            run = db.get(ExtractionRun, alert.run_id) if alert.run_id else None
+            if run is not None:
+                run.alerts_sent = (run.alerts_sent or 0) + 1
+        db.commit()
+        if status != "sent":
+            break
+
+    return {
+        "pending": len(pending),
+        "sent": sent,
+        "failed": len(pending) - sent,
+        "error": error if sent < len(pending) else None,
     }

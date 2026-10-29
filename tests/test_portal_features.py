@@ -211,3 +211,32 @@ def test_iso_entries_still_under_publication_are_not_captured():
     result = extractor.parse(html.encode())
     assert [r.standard_id for r in result.rows] == ["ISO 4211-6:2025"]
     assert not result.issues
+
+
+def test_failed_alerts_can_be_resent(client):
+    from unittest import mock
+
+    from app.db import SessionLocal
+    from app.models import AlertLog
+
+    me = client.get("/api/users/me", headers=ADMIN).json()
+    with SessionLocal() as db:
+        db.add_all([
+            AlertLog(user_id=me["id"], email=me["email"], subject=f"s{i}", body="b",
+                     status="failed", error="[Errno 111] Connection refused")
+            for i in range(2)
+        ])
+        db.commit()
+
+    path = "app.routers.subscriptions.send_email"
+    with mock.patch(path, return_value=("failed", "[Errno 111] Connection refused")) as send:
+        down = client.post("/api/subscriptions/alerts/resend-failed", headers=ADMIN).json()
+    assert send.call_count == 1  # stops at the first failure instead of timing out on each
+    assert (down["sent"], down["failed"]) == (0, down["pending"])
+    assert "Connection refused" in down["error"]
+
+    with mock.patch(path, return_value=("sent", None)):
+        up = client.post("/api/subscriptions/alerts/resend-failed", headers=ADMIN).json()
+    assert up["sent"] == up["pending"] >= 2 and up["failed"] == 0 and up["error"] is None
+    alerts = client.get("/api/subscriptions/alerts", headers=ADMIN).json()
+    assert not [a for a in alerts if a["status"] == "failed"]

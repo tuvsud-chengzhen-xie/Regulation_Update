@@ -465,7 +465,11 @@
             </div>
 
             <div class="card">
-                <div class="card-head"><h2>Alerts</h2></div>
+                <div class="card-head">
+                    <h2>Alerts</h2>
+                    <span class="spacer"></span>
+                    <button class="btn btn-sm" id="btn-resend-alerts" hidden>Resend failed alerts</button>
+                </div>
                 <!-- Pattern B: list stays in view while one alert is read in full. -->
                 <div class="md-split">
                     <div class="mlist" id="alert-list"></div>
@@ -562,6 +566,6 @@
 
 <script src="/ds/nudges.js"></script>
 <script src="/ds/shell.js"></script>
-<script src="/static/app.js?v=1.1.2"></script>
+<script src="/static/app.js?v=1.1.3"></script>
 </body>
 </html>

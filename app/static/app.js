@@ -888,6 +888,10 @@
                         <div class="mrow-meta">${when(a.sent_at)} · ${esc(a.status)} · ${esc(a.backend)}</div>
                      </button>`).join("")
                 : `<p class="muted" style="padding:var(--space-3)">No alerts yet.</p>`;
+            const failed = alerts.filter((a) => a.status === "failed").length;
+            const resend = $("#btn-resend-alerts");
+            resend.hidden = !failed;
+            resend.textContent = `Resend failed alerts (${num(failed)})`;
         } catch (err) {
             emptyRow(tbody, 4, "Could not load subscriptions."); toastError(err);
         } finally { pending($("#subs-result"), false); }
@@ -901,8 +905,9 @@
         try {
             const alert = await api(`/api/subscriptions/alerts/${id}`);
             pane.innerHTML =
-                `<div class="eyebrow">${when(alert.sent_at)} · to ${esc(alert.email)}</div>
+                `<div class="eyebrow">${when(alert.sent_at)} · to ${esc(alert.email)} · ${esc(alert.status)}</div>
                  <h2 style="margin:6px 0 var(--space-3);font-size:var(--font-size-md)">${esc(alert.subject)}</h2>
+                 ${alert.error ? `<p class="muted">Delivery failed: ${esc(alert.error)}</p>` : ""}
                  <pre class="pre">${esc(alert.body)}</pre>`;
         } catch (err) {
             pane.innerHTML = `<p class="muted">Could not load this alert.</p>`;
@@ -1105,6 +1110,21 @@
         const row = e.target.closest("[data-alert]");
         if (row) showAlert(row.dataset.alert);
     });
+    $("#btn-resend-alerts").onclick = async (e) => {
+        const btn = e.currentTarget;
+        btn.disabled = true;
+        showToast("Resending failed alerts…", { type: "info", duration: 2500 });
+        try {
+            const r = await api("/api/subscriptions/alerts/resend-failed", { method: "POST" });
+            if (!r.failed) {
+                showToast(`Resent ${num(r.sent)} alert(s)`, { type: "success" });
+            } else {
+                showToast(`Resent ${num(r.sent)} of ${num(r.pending)} — still failing: ${esc(r.error || "unknown error")}`,
+                          { type: "error", duration: 7000 });
+            }
+        } catch (err) { toastError(err); }
+        finally { btn.disabled = false; loadSubscriptions(); }
+    };
     $("#s-add").onclick = async () => {
         const value = $("#s-value").value.trim();
         if (!value) return showToast("Enter something to subscribe to", { type: "warn" });
