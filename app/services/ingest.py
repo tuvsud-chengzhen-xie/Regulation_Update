@@ -499,6 +499,12 @@ def _process_source(
     added_by_family: dict[str, list[str]] = {}
     for incoming, info in added:
         added_by_family.setdefault(info.family, []).append(incoming.standard_id)
+    reaffirmed_replacements = {}
+    if body == "BIFMA":
+        for incoming in extracted:
+            if describe_reference(incoming.standard_id, body).reaffirmed:
+                base_key = normalize_standard_id(incoming.standard_id.rsplit("(", 1)[0])
+                reaffirmed_replacements.setdefault(base_key, []).append(incoming.standard_id)
     withdrawn_keys = {row.standard_id_norm for row in diff.withdrawn}
     counts = dict.fromkeys(
         (CHANGE_ADDED, CHANGE_UPDATED, CHANGE_WITHDRAWN, CHANGE_SUPERSEDED), 0
@@ -545,8 +551,16 @@ def _process_source(
         if standard.family is None:
             _apply_reference(standard, describe_reference(standard.standard_id, body))
         family = standard.family
-        replacements = added_by_family.get(family, [])
+        replacements = reaffirmed_replacements.get(
+            standard.standard_id_norm, added_by_family.get(family, [])
+        )
         change_type = CHANGE_SUPERSEDED if replacements else CHANGE_WITHDRAWN
+        for replacement in existing:
+            if replacement.standard_id in replacements:
+                supersedes = (replacement.supersedes or "").split(", ")
+                replacement.supersedes = ", ".join(sorted(
+                    {ref for ref in supersedes if ref} | {standard.standard_id}
+                ))
         last_seen = standard.last_seen_run_id
         standard.status = STATUS_WITHDRAWN
         standard.withdrawn_at = moment

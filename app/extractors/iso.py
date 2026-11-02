@@ -93,6 +93,26 @@ class ISOExtractor(BaseExtractor):
     def target_url(self) -> str:
         return _with_published_filter(self.source.url)
 
+    def fetch(self, ctx) -> bytes:
+        from app.config import settings
+        from app.extractors.fetching import CAUSE_CHALLENGE, FetchError
+
+        try:
+            return super().fetch(ctx)
+        except FetchError as browser_error:
+            if browser_error.cause != CAUSE_CHALLENGE or not settings.browser_http_fallback:
+                raise
+            try:
+                payload = ctx.http_get(
+                    self.target_url(), body=self.body,
+                    headers=self.extra_headers, transport="http-fallback",
+                )
+                if not self.parse(payload).rows:
+                    raise ExtractorError("HTTPS response contains no published ISO standards")
+                return payload
+            except ExtractorError as fallback_error:
+                raise browser_error from fallback_error
+
     def parse(self, payload: bytes) -> ParseResult:
         html = decode(payload)
         soup = BeautifulSoup(html, "lxml")

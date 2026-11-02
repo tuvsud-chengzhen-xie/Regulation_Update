@@ -264,6 +264,35 @@ def test_new_corrigenda_editions_and_withdrawals_are_classified_and_linked(
     assert clean_db.query(Standard).filter_by(standard_id="EN 9999:2010").count() == 1
 
 
+def test_bifma_duplicate_is_superseded_by_existing_reaffirmed_record(clean_db):
+    from app.services.ingest import run_upload
+
+    source = Source(body="BIFMA", tc_code="BIFMA", url="https://www.madcad.com/store/")
+    clean_db.add(source)
+    clean_db.flush()
+    for reference in ("BIFMA X5.4-2020", "BIFMA X5.4-2020(R2025)"):
+        clean_db.add(Standard(
+            source_id=source.id, standard_id=reference, standard_id_norm=reference,
+            family="BIFMA X5.4", status=STATUS_CURRENT,
+            title_en="Public and Lounge Seating",
+        ))
+    clean_db.commit()
+    payload = (
+        b"<p>BIFMA X5.4-2020 Public and Lounge Seating</p>"
+        b"<p>BIFMA X5.4-2020 (R2025) Public and Lounge Seating</p>"
+    )
+    run = run_upload(clean_db, source_id=source.id, payload=payload, send_alerts=False)
+    assert run.superseded_count == 1 and run.withdrawn_count == 0
+    rows = by_id(clean_db)
+    assert rows["BIFMA X5.4-2020"].status == STATUS_WITHDRAWN
+    assert rows["BIFMA X5.4-2020"].superseded_by == "BIFMA X5.4-2020(R2025)"
+    reaffirmed = rows["BIFMA X5.4-2020(R2025)"]
+    assert reaffirmed.status == STATUS_CURRENT
+    assert reaffirmed.supersedes == "BIFMA X5.4-2020"
+    again = run_upload(clean_db, source_id=source.id, payload=payload, send_alerts=False)
+    assert again.superseded_count == 0 and again.reinstated_count == 0
+
+
 def test_a_run_that_would_withdraw_most_of_a_source_is_held_back(
     clean_db, cen_source, catalogue, monkeypatch
 ):
@@ -368,6 +397,31 @@ def test_browser_sources_fall_back_to_https_when_no_browser_can_start():
 
 
 # --- subscriptions -----------------------------------------------------------
+
+@pytest.mark.parametrize("valid_catalogue", [True, False])
+def test_iso_browser_challenge_falls_back_only_to_a_real_catalogue(valid_catalogue):
+    from app.extractors.iso import ISOExtractor
+
+    payload = (
+        b"<table><tr><td class='entry-name'>ISO 4211-1:2025</td>"
+        b"<td class='entry-description'>Furniture tests</td><td>60.60</td></tr></table>"
+        if valid_catalogue else b"<html>catalogue loading...</html>"
+    )
+    browser_error = FetchError("verification pending", cause="challenge")
+    ctx = mock.Mock()
+    ctx.browser_get.side_effect = browser_error
+    ctx.http_get.return_value = payload
+    extractor = ISOExtractor(SimpleNamespace(
+        url="https://www.iso.org/committee/52448/x/catalogue", tc_code="ISO/TC 136",
+        fetch_strategy="browser", options={},
+    ))
+    if valid_catalogue:
+        assert extractor.fetch(ctx) == payload
+    else:
+        with pytest.raises(FetchError) as caught:
+            extractor.fetch(ctx)
+        assert caught.value is browser_error
+    assert ctx.http_get.call_args.kwargs["transport"] == "http-fallback"
 
 def test_a_new_sources_first_capture_is_not_alerted_but_later_changes_are(
     clean_db, cen_source, catalogue

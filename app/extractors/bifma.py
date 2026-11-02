@@ -93,6 +93,15 @@ class BIFMAExtractor(BaseExtractor):
                     source_url=self.source.url,
                 )
             )
+        reaffirmed_bases = {
+            REAFFIRMED_RE.sub("", row.standard_id).strip().upper()
+            for row in result.rows
+            if REAFFIRMED_RE.search(row.standard_id)
+        }
+        result.rows = [
+            row for row in result.rows
+            if row.standard_id.upper() not in reaffirmed_bases
+        ]
         return result
 
 

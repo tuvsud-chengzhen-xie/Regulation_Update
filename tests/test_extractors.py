@@ -111,6 +111,39 @@ def test_bifma_matches_specification_example():
     assert row.title_en.startswith("Furniture Surfaces")
 
 
+def test_bifma_prefers_reaffirmed_reference_over_duplicate_base():
+    rows, _ = _parse_inline(
+        "BIFMA",
+        "<p>BIFMA X5.4-2020 Public and Lounge Seating</p>"
+        "<p>BIFMA X5.4-2020 (R2025) Public and Lounge Seating</p>"
+        "<p>BIFMA X5.41-2021 Large Occupant Public and Lounge Seating</p>",
+    )
+    assert set(rows) == {"BIFMA X5.4-2020(R2025)", "BIFMA X5.41-2021"}
+
+
+@pytest.mark.parametrize("year_html", [
+    "<span>20</span><span>26</span>",
+    "20<span>26</span>",
+])
+def test_ali_split_year_across_inline_elements(year_html):
+    rows, _ = _parse_inline(
+        "ALI",
+        f"<p>ANSI/ALI A14.1 - Portable Wood Ladders - {year_html}</p>",
+    )
+    assert "ANSI/ALI A14.1-2026" in rows
+    assert rows["ANSI/ALI A14.1-2026"].title_en == "Portable Wood Ladders"
+    assert rows["ANSI/ALI A14.1-2026"].publish_date == "2026"
+
+
+def test_ali_saved_page_declared_encoding():
+    payload = (
+        '<html><meta charset="windows-1252"><p>'
+        'ANSI/ALI A14.1 - Portable Wood Ladders - 20\xa026 \u2022</p></html>'
+    ).encode("cp1252")
+    result = get_extractor(source("ALI", "ALI", None)).parse(payload)
+    assert any(row.standard_id == "ANSI/ALI A14.1-2026" for row in result.rows)
+
+
 def test_ali_matches_specification_example():
     rows = extract(source("ALI", "ALI", "ali_a14.html"))
     row = rows["ANSI/ALI A14.1-2018"]

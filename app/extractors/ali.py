@@ -54,8 +54,12 @@ class ALIExtractor(BaseExtractor):
                 continue
             designator = re.sub(r"\s+", " ", match.group(1)).upper()
             year = match.group(2)
-            remainder = SPLIT_YEAR_RE.sub(r"\1\2", line[match.end() :]).strip(_TRIM)
+            remainder = line[match.end() :].strip(_TRIM)
             block = entry_block(lines, index, ID_RE)
+            if (block and re.search(r"\b(?:19|20)$", remainder)
+                    and re.match(r"^\d{2}\b", block[0])):
+                remainder = f"{remainder} {block.pop(0)}"
+            remainder = SPLIT_YEAR_RE.sub(r"\1\2", remainder).strip(_TRIM)
             where = f"line {index + 1}"
             if not year:
                 found = YEAR_RE.search(remainder) or YEAR_RE.search(
