@@ -89,12 +89,18 @@ class Settings(BaseSettings):
 
     # --- Email alerts ------------------------------------------------------
     # "console" writes alerts to data/outbox/ instead of sending them.
-    email_backend: Literal["console", "smtp"] = "console"
+    email_backend: Literal["console", "smtp", "acs"] = "console"
     smtp_host: str = "localhost"
     smtp_port: int = 25
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_use_tls: bool = True
+    # Azure Communication Services: the endpoint authenticates with the app's
+    # managed identity; a connection string is used instead when set.
+    acs_endpoint: str = ""
+    acs_connection_string: str = ""
+    acs_send_timeout_seconds: float = 120.0
+    # For ACS this must be a sender address on a domain linked to the resource.
     email_from: str = "standards-monitor@tuvsud.com"
     outbox_dir: Path = DATA_ROOT / "data" / "outbox"
     # Portal address used in alert emails; on App Service WEBSITE_HOSTNAME is used if unset.

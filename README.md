@@ -176,7 +176,11 @@ site's own host name is used automatically).
 
 `EMAIL_BACKEND=console` (the default) writes each alert to `data/outbox/`
 instead of sending it, so the flow is fully demonstrable offline. Set
-`EMAIL_BACKEND=smtp` plus the `SMTP_*` variables for real delivery.
+`EMAIL_BACKEND=smtp` plus the `SMTP_*` variables, or `EMAIL_BACKEND=acs` for
+Azure Communication Services: `ACS_ENDPOINT` (authenticated with the app's
+managed identity, which needs the *Communication and Email Service Owner* role)
+or `ACS_CONNECTION_STRING`, and `EMAIL_FROM` set to a sender on a domain linked
+to the resource.
 
 ### 4. Access rights and export
 

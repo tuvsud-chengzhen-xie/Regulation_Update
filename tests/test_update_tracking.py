@@ -398,6 +398,44 @@ def test_browser_sources_fall_back_to_https_when_no_browser_can_start():
 
 # --- subscriptions -----------------------------------------------------------
 
+@pytest.mark.parametrize(
+    ("outcome", "expected"),
+    [
+        ({"status": "Succeeded"}, ("sent", None)),
+        ({"status": "Failed", "error": {"message": "sender not allowed"}},
+         ("failed", "ACS status Failed: sender not allowed")),
+    ],
+)
+def test_acs_backend_sends_plain_text_from_the_configured_sender(monkeypatch, outcome, expected):
+    from app.services import notify
+
+    monkeypatch.setattr(settings, "email_backend", "acs")
+    monkeypatch.setattr(settings, "email_from", "DoNotReply@example.azurecomm.net")
+    poller = mock.Mock()
+    poller.done.return_value = True
+    poller.result.return_value = outcome
+    client = mock.Mock()
+    client.begin_send.return_value = poller
+    monkeypatch.setattr(notify, "_acs_client", lambda: client)
+
+    assert notify.send_email("user@tuvsud.com", "Subject", "Body") == expected
+    sent = client.begin_send.call_args.args[0]
+    assert sent["senderAddress"] == "DoNotReply@example.azurecomm.net"
+    assert sent["recipients"] == {"to": [{"address": "user@tuvsud.com"}]}
+    assert sent["content"] == {"subject": "Subject", "plainText": "Body"}
+
+
+def test_acs_backend_without_endpoint_fails_the_alert_not_the_run(monkeypatch):
+    from app.services import notify
+
+    monkeypatch.setattr(settings, "email_backend", "acs")
+    monkeypatch.setattr(settings, "acs_endpoint", "")
+    monkeypatch.setattr(settings, "acs_connection_string", "")
+    notify._acs_client.cache_clear()
+    status, error = notify.send_email("user@tuvsud.com", "Subject", "Body")
+    notify._acs_client.cache_clear()
+    assert status == "failed" and "ACS_ENDPOINT" in error
+
 @pytest.mark.parametrize("valid_catalogue", [True, False])
 def test_iso_browser_challenge_falls_back_only_to_a_real_catalogue(valid_catalogue):
     from app.extractors.iso import ISOExtractor

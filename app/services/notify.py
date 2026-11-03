@@ -12,6 +12,7 @@ import os
 import smtplib
 from datetime import datetime, timezone
 from email.message import EmailMessage
+from functools import lru_cache
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -251,6 +252,9 @@ def send_email(to_address: str, subject: str, body: str) -> tuple[str, str | Non
         logger.info("alert written to %s", path)
         return "sent", None
 
+    if settings.email_backend == "acs":
+        return _send_with_acs(to_address, subject, body)
+
     message = EmailMessage()
     message["From"] = settings.email_from
     message["To"] = to_address
@@ -266,4 +270,42 @@ def send_email(to_address: str, subject: str, body: str) -> tuple[str, str | Non
         return "sent", None
     except Exception as exc:  # noqa: BLE001 - a failed alert must not fail the run
         logger.error("failed to send alert to %s: %s", to_address, exc)
+        return "failed", str(exc)
+
+
+@lru_cache(maxsize=1)
+def _acs_client():
+    from azure.communication.email import EmailClient
+
+    if settings.acs_connection_string:
+        return EmailClient.from_connection_string(settings.acs_connection_string)
+    if not settings.acs_endpoint:
+        raise RuntimeError("EMAIL_BACKEND=acs needs ACS_ENDPOINT or ACS_CONNECTION_STRING")
+    from azure.identity import DefaultAzureCredential
+
+    return EmailClient(settings.acs_endpoint, DefaultAzureCredential())
+
+
+def _send_with_acs(to_address: str, subject: str, body: str) -> tuple[str, str | None]:
+    message = {
+        "senderAddress": settings.email_from,
+        "recipients": {"to": [{"address": to_address}]},
+        "content": {"subject": subject, "plainText": body},
+    }
+    try:
+        poller = _acs_client().begin_send(message)
+        poller.wait(settings.acs_send_timeout_seconds)
+        if not poller.done():
+            # ACS accepted the message; delivery is still being processed.
+            logger.warning("ACS still processing alert to %s after %ss",
+                           to_address, settings.acs_send_timeout_seconds)
+            return "sent", None
+        result = poller.result()
+        if result.get("status") == "Succeeded":
+            return "sent", None
+        error = result.get("error") or {}
+        detail = error.get("message") if isinstance(error, dict) else str(error)
+        raise RuntimeError(f"ACS status {result.get('status')}: {detail or 'no detail'}")
+    except Exception as exc:  # noqa: BLE001 - a failed alert must not fail the run
+        logger.error("failed to send alert to %s via ACS: %s", to_address, exc)
         return "failed", str(exc)
