@@ -49,6 +49,14 @@ class Settings(BaseSettings):
     # When the headless browser cannot start on this host, try plain HTTPS
     # before failing a browser-backed source.
     browser_http_fallback: bool = True
+    # Sources that failed for a temporary reason are tried once more at the end
+    # of the run, after this pause.
+    retry_failed_sources: bool = True
+    retry_pass_delay_seconds: float = 30.0
+    # Read "Supersedes / Superseded by" from CEN project pages for each changed
+    # CEN publication (the export does not carry it). Capped per run.
+    cen_relations_enabled: bool = True
+    cen_relations_max_lookups: int = 40
 
     # --- Withdrawal validation ---------------------------------------------
     # A run that would withdraw more than this share of a source's current
@@ -66,8 +74,9 @@ class Settings(BaseSettings):
         "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
     )
     browser_timeout_seconds: float = 60.0
-    # How long to let a site's own interstitial finish before giving up.
-    browser_challenge_wait_seconds: float = 25.0
+    # How long to let a site's own interstitial finish before giving up. The
+    # first ISO page of a run regularly needs more than 25 s.
+    browser_challenge_wait_seconds: float = 45.0
     # How long to wait for the listing selector once the page is through. This,
     # not a network-idle wait, is what proves the listing actually rendered.
     browser_content_wait_seconds: float = 20.0

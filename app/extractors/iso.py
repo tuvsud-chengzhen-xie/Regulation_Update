@@ -44,6 +44,8 @@ STAGE_RE = re.compile(r"^\d{2}\.\d{2}$")
 # Withdrawn editions stay on the committee page, flagged inline as well.
 WITHDRAWN_MARKER_RE = re.compile(r"\[\s*withdrawn\s*\]", re.IGNORECASE)
 UNDER_DEVELOPMENT_MARKER_RE = re.compile(r"\[\s*under development\s*\]", re.IGNORECASE)
+# A newly created committee's catalogue says so instead of showing a table.
+NOTHING_PUBLISHED_RE = re.compile(r"no standard has been published by this committee", re.IGNORECASE)
 
 
 def stage_class(stage: str | None) -> str:
@@ -205,6 +207,8 @@ class ISOExtractor(BaseExtractor):
             )
 
         if not result.rows and "catalogue" not in html[:4000].lower():
+            if NOTHING_PUBLISHED_RE.search(soup.get_text(" ")):
+                return result
             raise ExtractorError("ISO catalogue page did not contain a standards table")
         return result
 

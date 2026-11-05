@@ -407,6 +407,36 @@ class BrowserSession:
             )
         return html
 
+    def interact(self, url: str, action, *, body: str = ""):
+        """Open `url` and hand the page to `action` (for sites that need a form)."""
+        with self._lock:
+            self._ensure_started()
+            page = self._context.new_page()
+            try:
+                try:
+                    page.goto(url, wait_until="domcontentloaded",
+                              timeout=settings.browser_timeout_seconds * 1000)
+                except Exception as exc:  # noqa: BLE001
+                    if _browser_cause(exc) != CAUSE_TIMEOUT or len(page.content()) < 2000:
+                        raise
+                self._settle(page, url, body)
+                return action(page)
+            except FetchError:
+                raise
+            except Exception as exc:  # noqa: BLE001 - classify every Playwright failure
+                cause = _browser_cause(exc)
+                if cause == CAUSE_BROWSER_CRASH:
+                    self.close()
+                first_line = (str(exc).splitlines() or [exc.__class__.__name__])[0][:300]
+                raise FetchError(
+                    f"browser interaction with {url} failed: {first_line}", cause=cause, url=url
+                ) from exc
+            finally:
+                try:
+                    page.close()
+                except Exception:  # noqa: BLE001 - page may already be gone
+                    pass
+
     def close(self) -> None:
         for closer in (self._context, self._browser, self._playwright):
             if closer is None:
@@ -536,6 +566,9 @@ class FetchContext:
             return payload
 
         return self._with_retries(fetch, url=url, transport="browser", body=body)
+
+    def browser_interact(self, url: str, action, *, body: str = ""):
+        return self.browser.interact(url, action, body=body)
 
     def close(self) -> None:
         if self._client is not None:

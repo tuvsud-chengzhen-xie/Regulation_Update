@@ -213,6 +213,19 @@ def test_iso_entries_still_under_publication_are_not_captured():
     assert not result.issues
 
 
+def test_a_new_iso_committee_with_nothing_published_is_an_empty_catalogue():
+    """ISO/TC 355 (created 2025) says so instead of showing a table."""
+    from types import SimpleNamespace
+
+    from app.extractors.iso import ISOExtractor
+
+    html = ("<html><head><title>ISO - ISO/TC 355</title></head><body><main>"
+            "<p>No standard has been published by this committee</p></main></body></html>")
+    extractor = ISOExtractor(SimpleNamespace(tc_code="ISO/TC 355", url="https://x", options={}))
+    result = extractor.parse(html.encode())
+    assert result.rows == [] and not result.issues
+
+
 def test_failed_alerts_can_be_resent(client):
     from unittest import mock
 

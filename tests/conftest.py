@@ -23,6 +23,9 @@ os.environ.update(
         "SCHEDULER_ENABLED": "false",
         "LIVE_FETCH_DELAY_SECONDS": "0",
         "FETCH_RETRY_BACKOFF_SECONDS": "0",
+        "RETRY_PASS_DELAY_SECONDS": "0",
+        # Looked up live on CEN's site; tests that need it mock the lookup.
+        "CEN_RELATIONS_ENABLED": "false",
         # Several tests swap a whole catalogue on purpose; the guard has its own test.
         "MAX_WITHDRAWAL_RATIO": "1.0",
         "BOOTSTRAP_ADMIN_EMAIL": "admin@example.com",

@@ -326,12 +326,152 @@ def test_fetch_failures_are_stored_with_cause_and_every_attempt(clean_db, cen_so
     with mock.patch("app.services.ingest.extract_source", failing):
         run = run_extraction(clean_db, send_alerts=False)
 
+    # A timeout is temporary, so the source is retried once at the end of the run.
     result = clean_db.query(SourceRunResult).filter_by(run_id=run.id).one()
-    assert (result.status, result.error_cause, result.attempts) == ("failed", "timeout", 3)
-    assert clean_db.query(FetchAttempt).filter_by(run_id=run.id).count() == 3
+    assert (result.status, result.error_cause, result.attempts) == ("failed", "timeout", 6)
+    assert clean_db.query(FetchAttempt).filter_by(run_id=run.id).count() == 6
     issue = clean_db.query(ExtractionIssue).filter_by(run_id=run.id).one()
     assert issue.reason == "source_unavailable"
     assert "timeout" in issue.location and "did not respond in time" in issue.detail
+
+
+def test_a_source_blocked_by_an_interstitial_is_retried_at_the_end_of_the_run(
+    clean_db, cen_source
+):
+    good = Catalogue()
+    good.rows = [("EN 581-1:2017", "2017-03-08")]
+    calls = []
+
+    def flaky(source, ctx):
+        calls.append(source.id)
+        ctx.attempts.append(SimpleNamespace(
+            url=source.url, transport="browser", attempt=1,
+            outcome="failed" if len(calls) == 1 else "ok",
+            cause="challenge" if len(calls) == 1 else None,
+            http_status=None, duration_ms=10, bytes=0, message=None,
+        ))
+        if len(calls) == 1:
+            raise FetchError("interstitial never cleared", cause="challenge", url=source.url)
+        return good(source, ctx)
+
+    with mock.patch("app.services.ingest.extract_source", flaky):
+        run = run_extraction(clean_db, send_alerts=False)
+
+    assert len(calls) == 2
+    assert (run.status, run.failed_source_count, run.added_count) == ("success", 0, 1)
+    result = clean_db.query(SourceRunResult).filter_by(run_id=run.id).one()
+    assert (result.status, result.attempts) == ("success", 2)
+    assert clean_db.query(FetchAttempt).filter_by(run_id=run.id).count() == 2
+    assert not clean_db.query(ExtractionIssue).filter_by(run_id=run.id, scope=ISSUE_SOURCE).all()
+
+
+def test_a_parse_error_is_not_retried(clean_db, cen_source):
+    calls = []
+
+    def broken(source, ctx):
+        calls.append(source.id)
+        raise ExtractorError("catalogue page did not contain a standards table")
+
+    with mock.patch("app.services.ingest.extract_source", broken):
+        run = run_extraction(clean_db, send_alerts=False)
+    assert len(calls) == 1 and run.status == "failed"
+
+
+# --- CEN supersession relations ----------------------------------------------
+
+CEN_PROJECT_RELATIONS = """
+<div id="DASHBOARD_LISTRELATIONS"><table class="dashlist">
+  <tr><th class="detail">Supersedes</th><td>
+    <a href="f?p=CEN:110:::::FSP_PROJECT:77427&cs=16C1">EN 16232:2013+A2:2023</a><br/>
+    <a href="f?p=CEN:110:::::FSP_PROJECT:66211&cs=1A27">EN 12790-2:2023</a><br/>
+    <a href="f?p=CEN:110:::::FSP_PROJECT:66210&cs=13A1">EN 12790-1:2023</a>
+  </td></tr>
+  <tr><th class="detail">Superseded by</th><td> </td></tr>
+  <tr><th class="detail">Normative reference (6)</th><td> </td></tr>
+</table></div>"""
+SUPERSEDED = ["EN 16232:2013+A2:2023", "EN 12790-2:2023", "EN 12790-1:2023"]
+
+
+def test_cen_project_page_relations_are_parsed():
+    from app.extractors.cen_relations import parse_relations, project_link
+
+    supersedes, superseded_by = parse_relations(CEN_PROJECT_RELATIONS)
+    assert supersedes == ["EN 16232:2013+A2:2023", "EN 12790-2:2023", "EN 12790-1:2023"]
+    assert superseded_by == []
+
+    search = ('<a href="f?p=CEN:110:::::FSP_PROJECT,FSP_ORG_ID:77256,6233&amp;cs=19F2">'
+              'EN 12790:2026</a><a href="f?p=CEN:110:::::FSP_PROJECT:1&amp;cs=AA">EN 12790-1:2023</a>')
+    assert project_link(search, "EN 12790:2026") == (
+        "https://standards.cencenelec.eu/ords/f?p=CEN:110:::::FSP_PROJECT,FSP_ORG_ID:77256,6233&cs=19F2"
+    )
+    assert project_link(search, "EN 9999:2020") is None
+
+
+def test_cen_one_to_many_supersession_is_linked_from_the_project_page(
+    clean_db, cen_source, catalogue, monkeypatch
+):
+    from app.extractors import cen_relations
+
+    catalogue.rows = [
+        ("EN 12790-1:2023", "2023-01-01"), ("EN 12790-2:2023", "2023-01-01"),
+        ("EN 16232:2013+A2:2023", "2023-01-01"), ("EN 1130:2019", "2019-11-27"),
+    ]
+    run_extraction(clean_db, send_alerts=False)
+
+    monkeypatch.setattr(settings, "cen_relations_enabled", True)
+    looked_up = []
+
+    def lookup(ctx, reference):
+        looked_up.append(reference)
+        if reference == "EN 12790:2026":
+            return cen_relations.CENRelations(reference, "https://x", list(SUPERSEDED), [])
+        return None
+
+    monkeypatch.setattr(cen_relations, "lookup", lookup)
+    catalogue.rows = [("EN 12790:2026", "2026-11-04"), ("EN 1130:2019", "2019-11-27")]
+    run = run_extraction(clean_db, send_alerts=False)
+
+    assert looked_up == ["EN 12790:2026"]  # the old ones were linked by the new one
+    assert (run.added_count, run.updated_count, run.withdrawn_count, run.superseded_count) == (
+        0, 1, 0, 3)
+    rows = by_id(clean_db)
+    new = rows["EN 12790:2026"]
+    assert new.supersedes == ", ".join(SUPERSEDED)
+    assert new.last_change_type == "updated"
+    for old in SUPERSEDED:
+        assert rows[old].status == STATUS_WITHDRAWN
+        assert rows[old].superseded_by == "EN 12790:2026"
+        assert rows[old].last_change_type == "superseded"
+    changes = {c.standard_id: c for c in clean_db.query(ChangeRecord).filter_by(run_id=run.id)}
+    assert changes["EN 12790:2026"].change_type == "updated"
+    assert changes["EN 12790:2026"].details["supersedes"] == SUPERSEDED
+    assert changes["EN 12790-1:2023"].change_type == "superseded"
+    assert changes["EN 12790-1:2023"].details["supersededBy"] == ["EN 12790:2026"]
+    result = clean_db.query(SourceRunResult).filter_by(run_id=run.id).one()
+    assert (result.added_count, result.updated_count, result.withdrawn_count,
+            result.superseded_count) == (0, 1, 0, 3)
+
+
+def test_a_failed_cen_lookup_is_reported_and_leaves_the_change_alone(
+    clean_db, cen_source, catalogue, monkeypatch
+):
+    from app.extractors import cen_relations
+
+    catalogue.rows = [("EN 1130:2019", "2019-11-27")]
+    run_extraction(clean_db, send_alerts=False)
+
+    monkeypatch.setattr(settings, "cen_relations_enabled", True)
+
+    def lookup(ctx, reference):
+        raise FetchError("CEN search timed out", cause="timeout")
+
+    monkeypatch.setattr(cen_relations, "lookup", lookup)
+    catalogue.rows = [("EN 20000:2026", "2026-10-07")]
+    run = run_extraction(clean_db, send_alerts=False)
+    assert run.status == "success"
+    assert (run.added_count, run.withdrawn_count) == (1, 1)
+    issues = clean_db.query(ExtractionIssue).filter_by(run_id=run.id, reason="relations_unavailable")
+    assert {i.standard_id for i in issues} == {"EN 20000:2026", "EN 1130:2019"}
 
 
 # --- transport ---------------------------------------------------------------

@@ -139,6 +139,30 @@ def start_background_run(
     return run_id
 
 
+def start_relation_backfill(run_id: int) -> None:
+    """Look up CEN supersession relations for an earlier run, in the background."""
+    from app.db import SessionLocal
+    from app.services.relations import link_cen_relations
+
+    if not _run_lock.acquire(blocking=False):
+        raise RunInProgress("A monitoring run is already in progress.")
+
+    def worker() -> None:
+        session = SessionLocal()
+        try:
+            with build_context() as ctx:
+                link_cen_relations(session, session.get(ExtractionRun, run_id), ctx)
+            session.commit()
+        except Exception:  # noqa: BLE001
+            logger.exception("CEN relation backfill for run #%s failed", run_id)
+            session.rollback()
+        finally:
+            session.close()
+            _run_lock.release()
+
+    threading.Thread(target=worker, name=f"cen-relations-{run_id}", daemon=True).start()
+
+
 def run_upload(
     db: Session,
     *,
@@ -365,6 +389,18 @@ def execute_run(
                 # going, and a crash later in the run keeps what was done.
                 db.commit()
 
+            if settings.retry_failed_sources and not uploads:
+                _retry_failed_sources(
+                    db, run=run, sources=sources, ctx=ctx, moment=moment,
+                    session_id=session_id, allow_mass_withdrawal=allow_mass_withdrawal,
+                )
+
+            if settings.cen_relations_enabled:
+                from app.services.relations import link_cen_relations
+
+                link_cen_relations(db, run, ctx)
+                db.commit()
+
         statuses = list(
             db.scalars(select(SourceRunResult.status).where(SourceRunResult.run_id == run_id))
         )
@@ -404,6 +440,67 @@ def execute_run(
 
     db.refresh(run)
     return run
+
+
+# Failures that can clear on their own; a parse error or 404 will not.
+_RETRYABLE_CAUSES = {
+    "challenge", "timeout", "connection", "network", "dns", "http_5xx",
+    "rate_limited", "empty_response", "browser_crash",
+}
+
+
+def _retry_failed_sources(
+    db: Session,
+    *,
+    run: ExtractionRun,
+    sources: list[Source],
+    ctx,
+    moment: datetime,
+    session_id: str,
+    allow_mass_withdrawal: bool,
+) -> None:
+    """Give sources that failed for a temporary reason one more try."""
+    failed = {
+        result.source_id: result
+        for result in db.scalars(
+            select(SourceRunResult).where(
+                SourceRunResult.run_id == run.id,
+                SourceRunResult.status == "failed",
+                SourceRunResult.error_cause.in_(_RETRYABLE_CAUSES),
+            )
+        )
+    }
+    retry = [source for source in sources if source.id in failed]
+    if not retry:
+        return
+    logger.info("run #%s: retrying %d source(s) after a temporary failure", run.id, len(retry))
+    time.sleep(settings.retry_pass_delay_seconds)
+    for source in retry:
+        first = failed[source.id]
+        earlier_attempts = first.attempts or 0
+        # The retry's outcome replaces the first failure; its attempts stay logged.
+        for issue in db.scalars(
+            select(ExtractionIssue).where(
+                ExtractionIssue.run_id == run.id,
+                ExtractionIssue.source_id == source.id,
+                ExtractionIssue.scope == ISSUE_SOURCE,
+            )
+        ):
+            db.delete(issue)
+        db.delete(first)
+        db.flush()
+        _process_source(
+            db, run=run, source=source, ctx=ctx, moment=moment,
+            session_id=session_id, allow_mass_withdrawal=allow_mass_withdrawal,
+        )
+        result = db.scalar(
+            select(SourceRunResult).where(
+                SourceRunResult.run_id == run.id, SourceRunResult.source_id == source.id
+            )
+        )
+        if result is not None:
+            result.attempts = (result.attempts or 0) + earlier_attempts
+        db.commit()
 
 
 def _process_source(

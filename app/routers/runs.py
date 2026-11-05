@@ -30,7 +30,13 @@ from app.schemas import (
 )
 from app.security import AdminUser, CurrentUser, DbSession
 from app.services import scheduler
-from app.services.ingest import RunInProgress, run_extraction, run_in_progress, start_background_run
+from app.services.ingest import (
+    RunInProgress,
+    run_extraction,
+    run_in_progress,
+    start_background_run,
+    start_relation_backfill,
+)
 
 router = APIRouter(prefix="/api/runs", tags=["monitoring runs"])
 
@@ -388,6 +394,21 @@ def get_run(run_id: int, db: DbSession, user: CurrentUser) -> ExtractionRun:
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
     return run
+
+
+@router.post(
+    "/{run_id}/cen-relations",
+    status_code=202,
+    summary="Look up CEN 'Supersedes / Superseded by' for an earlier run's changes",
+)
+def backfill_cen_relations(run_id: int, db: DbSession, admin: AdminUser) -> dict:
+    if db.get(ExtractionRun, run_id) is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    try:
+        start_relation_backfill(run_id)
+    except RunInProgress as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"run_id": run_id, "status": "started"}
 
 
 @router.get("/{run_id}/summary", summary="Per-change-type counts for one run")

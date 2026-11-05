@@ -145,7 +145,19 @@ corrigendum to `EN 16121:2023`), so every change says what it is:
 
 CEN lists corrigenda as their own rows, so a new AC is captured as its own
 record (`updated`, relation `corrigendum`) and never withdraws its base
-standard. Every record carries `first_seen_run_id`, `last_seen_run_id`,
+standard.
+
+**CEN supersession across numbers.** The CEN export does not say what a
+publication replaces, and CEN also merges or renumbers standards
+(`EN 12790:2026` supersedes `EN 12790-1:2023`, `EN 12790-2:2023` and
+`EN 16232:2013+A2:2023`). After each run, every changed CEN publication is
+searched on CEN's site and its project page's *Supersedes / Superseded by* is
+read: the new publication becomes `updated` and lists everything it replaces,
+and old publications withdrawn in the same run become `superseded`. Lookups
+are capped by `CEN_RELATIONS_MAX_LOOKUPS` (default 40) and skipped for a
+committee's first capture; a failed lookup is reported on the Issues page
+(`relations_unavailable`) without failing the run.
+`POST /api/runs/{id}/cen-relations` applies the same lookup to an earlier run. Every record carries `first_seen_run_id`, `last_seen_run_id`,
 `withdrawn_run_id`, `supersedes`/`superseded_by` and its last change;
 `GET /api/standards/{id}/history` (click a row on the Standards page) shows
 the record's changes across runs and its editions, amendments and corrigenda.
