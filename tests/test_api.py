@@ -73,6 +73,42 @@ def test_non_admin_cannot_trigger_runs_or_export(client):
     assert client.get("/api/standards?limit=1", headers=user_headers).status_code == 200
 
 
+def test_admin_cannot_deactivate_self_by_editing(client):
+    admin = client.get("/api/users/me", headers=ADMIN).json()
+    response = client.patch(
+        f"/api/users/{admin['id']}", json={"is_active": False}, headers=ADMIN,
+    )
+    assert response.status_code == 400
+    assert client.get("/api/users/me", headers=ADMIN).json()["is_active"] is True
+
+
+def test_admin_can_edit_and_reactivate_users_without_changing_keys(client):
+    created = client.post(
+        "/api/users", headers=ADMIN,
+        json={"email": "editable@example.com", "full_name": "Original name"},
+    ).json()
+    user_headers = {"X-API-Key": created["api_key"]}
+    path = f"/api/users/{created['id']}"
+    assert client.get("/api/users", headers=user_headers).status_code == 403
+    assert client.patch(path, json={"role": "admin"}, headers=user_headers).status_code == 403
+    saved = client.patch(
+        path, headers=ADMIN,
+        json={"full_name": "Updated name", "role": "admin", "is_active": False},
+    )
+    assert saved.status_code == 200
+    assert saved.json()["full_name"] == "Updated name"
+    assert saved.json()["role"] == "admin"
+    assert saved.json()["is_active"] is False
+    assert "api_key" not in saved.json()
+    assert client.get("/api/users/me", headers=user_headers).status_code == 401
+    restored = client.patch(path, headers=ADMIN, json={"role": "user", "is_active": True})
+    assert restored.status_code == 200
+    me = client.get("/api/users/me", headers=user_headers)
+    assert me.status_code == 200
+    assert me.json()["full_name"] == "Updated name"
+    assert me.json()["role"] == "user"
+
+
 def test_subscription_alerting_end_to_end(client, payloads):
     created = client.post(
         "/api/users",

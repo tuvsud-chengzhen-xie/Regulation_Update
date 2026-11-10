@@ -50,6 +50,8 @@ def update_user(user_id: int, payload: UserUpdate, db: DbSession, admin: AdminUs
         raise HTTPException(status_code=404, detail="User not found")
     if user.id == admin.id and payload.role and payload.role != admin.role:
         raise HTTPException(status_code=400, detail="Administrators cannot demote themselves")
+    if user.id == admin.id and payload.is_active is False:
+        raise HTTPException(status_code=400, detail="Administrators cannot deactivate themselves")
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
     db.commit()

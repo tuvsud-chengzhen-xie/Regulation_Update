@@ -486,7 +486,7 @@
                 <div class="stack">
                     <div>
                         <label class="form-label" for="s-type">Scope</label>
-                        <select id="s-type" class="field" style="width:100%">
+                        <select id="s-type" class="field" style="box-sizing:border-box;width:100%;min-width:0">
                             <option value="standard">Per standard</option>
                             <option value="committee">Per committee (TC/SC)</option>
                             <option value="body">Per standards body</option>
@@ -495,7 +495,7 @@
                     </div>
                     <div>
                         <label class="form-label" for="s-value">Value</label>
-                        <input id="s-value" class="field" style="width:100%"
+                        <input id="s-value" class="field" style="box-sizing:border-box;width:100%;min-width:0"
                                placeholder="e.g. CEN/TC 207">
                     </div>
                     <button class="btn btn-primary" id="s-add">Subscribe</button>
@@ -527,6 +527,39 @@
         <div class="page-actions">
             <button class="btn btn-ghost" id="btn-signout">Sign out</button>
         </div>
+    </div>
+
+    <div class="card" id="admin-user-editor" hidden>
+        <div class="card-head">
+            <h2>Edit user</h2><span class="spacer"></span>
+            <button class="btn btn-sm" id="btn-users-refresh" type="button">Refresh</button>
+        </div>
+        <label class="form-label" for="user-edit-select">User</label>
+        <select id="user-edit-select" class="field" style="box-sizing:border-box;width:100%;min-width:0">
+            <option value="">Select a user</option>
+        </select>
+        <p id="user-list-status" class="muted" role="status" style="overflow-wrap:anywhere"></p>
+        <form id="user-edit" style="display:grid;gap:var(--space-3)" hidden>
+            <label>Full name
+                <input id="user-edit-name" class="field" maxlength="255"
+                       style="box-sizing:border-box;width:100%;min-width:0">
+            </label>
+            <label>Email
+                <input id="user-edit-email" class="field" type="email" readonly
+                       style="box-sizing:border-box;width:100%;min-width:0">
+            </label>
+            <label>Role
+                <select id="user-edit-role" class="field" style="box-sizing:border-box;width:100%;min-width:0">
+                    <option value="user">User</option>
+                    <option value="admin">Administrator</option>
+                </select>
+            </label>
+            <label class="check"><input id="user-edit-active" type="checkbox"> Active</label>
+            <div class="row">
+                <button class="btn btn-primary" id="btn-user-save" type="submit">Save changes</button>
+                <button class="btn btn-ghost" id="btn-user-cancel" type="button">Cancel</button>
+            </div>
+        </form>
     </div>
 
     <div class="card" id="admin-users" hidden>
@@ -597,6 +630,6 @@
 
 <script src="/ds/nudges.js"></script>
 <script src="/ds/shell.js"></script>
-<script src="/static/app.js?v=1.1.4"></script>
+<script src="/static/app.js?v=1.1.5"></script>
 </body>
 </html>

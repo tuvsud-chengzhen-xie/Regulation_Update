@@ -966,14 +966,17 @@
         issues: () => loadIssues({ first: !state.iss.mounted }),
         sources: () => loadSources({ first: !VIEWS._sources && (VIEWS._sources = true) }),
         subscriptions: () => loadSubscriptions({ first: !VIEWS._subs && (VIEWS._subs = true) }),
-        admin: () => {},
+        admin: () => loadAdminUsers(),
     };
 
     function route() {
         const [path, query] = (location.hash.replace("#/", "") || "standards").split("?");
         const wanted = path || "standards";
         const view = state.key && state.me ? (VIEWS[wanted] ? wanted : "standards") : "connect";
-        if (view !== "admin") clearCreatedUser();
+        if (view !== "admin") {
+            clearCreatedUser();
+            clearUserEditor();
+        }
         state.view = view;
         if (view === "changes" && query !== undefined) {
             const params = new URLSearchParams(query);
@@ -1003,6 +1006,7 @@
             $("#schedule-form").hidden = !admin;
             $("#src-add-card").hidden = !admin;
             $("#admin-users").hidden = !admin;
+            $("#admin-user-editor").hidden = !admin;
             if (admin) {
                 api("/api/sources/bodies").then((bodies) => {
                     $("#src-body").innerHTML = bodies.map((b) =>
@@ -1141,6 +1145,96 @@
         } catch (err) { toastError(err); }
     };
 
+    let adminUsers = [];
+    let adminUsersSeq = 0;
+
+    function clearUserEditor() {
+        adminUsersSeq += 1;
+        adminUsers = [];
+        $("#user-edit-select").innerHTML = '<option value="">Select a user</option>';
+        $("#user-edit").reset();
+        $("#user-edit").hidden = true;
+        $("#user-list-status").textContent = "";
+    }
+
+    function selectUserForEdit() {
+        const user = adminUsers.find((item) => String(item.id) === $("#user-edit-select").value);
+        $("#user-edit").hidden = !user;
+        if (!user) return;
+        $("#user-edit-name").value = user.full_name || "";
+        $("#user-edit-email").value = user.email;
+        $("#user-edit-role").value = user.role;
+        $("#user-edit-active").checked = user.is_active;
+        const ownAccount = user.id === state.me?.id;
+        $("#user-edit-role").disabled = ownAccount;
+        $("#user-edit-active").disabled = ownAccount;
+    }
+
+    async function loadAdminUsers({ selectedId = "" } = {}) {
+        if (state.me?.role !== "admin") { clearUserEditor(); return; }
+        const sequence = ++adminUsersSeq;
+        const key = state.key;
+        const select = $("#user-edit-select");
+        select.disabled = true;
+        $("#user-edit").hidden = true;
+        $("#user-list-status").textContent = "Loading users...";
+        try {
+            const users = await api("/api/users");
+            if (sequence !== adminUsersSeq || key !== state.key || state.me?.role !== "admin") return;
+            adminUsers = users;
+            select.innerHTML = '<option value="">Select a user</option>' + users.map((user) =>
+                `<option value="${user.id}">${esc(user.full_name || user.email)} (${esc(user.email)})${user.is_active ? "" : " - Inactive"}</option>`).join("");
+            select.value = String(selectedId);
+            $("#user-list-status").textContent = `${num(users.length)} users`;
+            selectUserForEdit();
+        } catch (error) {
+            if (sequence === adminUsersSeq && key === state.key) {
+                adminUsers = [];
+                select.innerHTML = '<option value="">Select a user</option>';
+                $("#user-list-status").textContent = `Could not load users: ${error.message}`;
+            }
+        } finally { if (sequence === adminUsersSeq) select.disabled = false; }
+    }
+
+    $("#user-edit-select").onchange = selectUserForEdit;
+    $("#btn-users-refresh").onclick = () => loadAdminUsers();
+    $("#btn-user-cancel").onclick = () => {
+        $("#user-edit-select").value = "";
+        $("#user-edit").reset();
+        $("#user-edit").hidden = true;
+    };
+    $("#user-edit").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const userId = $("#user-edit-select").value;
+        const button = $("#btn-user-save");
+        if (state.me?.role !== "admin" || !userId || button.disabled) return;
+        const payload = { full_name: $("#user-edit-name").value.trim() || null };
+        if (String(state.me.id) !== userId) {
+            payload.role = $("#user-edit-role").value;
+            payload.is_active = $("#user-edit-active").checked;
+        }
+        const key = state.key;
+        button.disabled = true;
+        $("#user-edit-select").disabled = true;
+        $("#btn-users-refresh").disabled = true;
+        $("#btn-user-cancel").disabled = true;
+        try {
+            const user = await api(`/api/users/${encodeURIComponent(userId)}`, {
+                method: "PATCH", body: JSON.stringify(payload),
+            });
+            if (key !== state.key || state.me?.role !== "admin") return;
+            if (user.id === state.me.id) state.me = { ...state.me, ...user };
+            showToast(`Saved ${esc(user.email)}`, { type: "success" });
+            if (state.view === "admin") await loadAdminUsers({ selectedId: user.id });
+        } catch (error) { if (key === state.key) toastError(error); }
+        finally {
+            button.disabled = false;
+            $("#user-edit-select").disabled = false;
+            $("#btn-users-refresh").disabled = false;
+            $("#btn-user-cancel").disabled = false;
+        }
+    });
+
     function clearCreatedUser() {
         $("#user-created-key").value = "";
         $("#user-created-email").textContent = "";
@@ -1170,6 +1264,7 @@
                 $("#user-created-email").textContent = `${user.full_name || user.email} (${user.email})`;
                 $("#user-created-key").value = user.api_key;
                 $("#user-created").hidden = false;
+                loadAdminUsers({ selectedId: user.id });
             }
             showToast(`Created ${esc(user.email)}`, { type: "success" });
         } catch (error) { toastError(error); }
