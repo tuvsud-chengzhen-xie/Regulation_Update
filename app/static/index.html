@@ -529,6 +529,37 @@
         </div>
     </div>
 
+    <div class="card" id="admin-users" hidden>
+        <div class="card-head"><h2>Add user</h2></div>
+        <form id="user-add" style="display:grid;gap:var(--space-3)">
+            <label>Full name
+                <input id="user-name" class="field" autocomplete="name" maxlength="255"
+                      style="box-sizing:border-box;width:100%;min-width:0" required>
+            </label>
+            <label>Email
+                <input id="user-email" class="field" type="email" autocomplete="email"
+                      style="box-sizing:border-box;width:100%;min-width:0" required>
+            </label>
+            <label>Role
+                <select id="user-role" class="field" style="box-sizing:border-box;width:100%;min-width:0">
+                    <option value="user">User</option>
+                    <option value="admin">Administrator</option>
+                </select>
+            </label>
+            <div><button class="btn btn-primary" id="btn-user-add" type="submit">Create user</button></div>
+        </form>
+        <div id="user-created" style="margin-top:var(--space-3)" hidden>
+            <p id="user-created-email" style="overflow-wrap:anywhere"></p>
+            <label for="user-created-key">API key (shown once)</label>
+            <div class="row">
+                <input id="user-created-key" class="field" readonly autocomplete="off" spellcheck="false"
+                       style="flex:1;min-width:0">
+                <button class="btn btn-sm" id="btn-user-copy" type="button">Copy key</button>
+                <button class="btn btn-sm btn-ghost" id="btn-user-dismiss" type="button">Dismiss</button>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-head">
             <h2>Export</h2><span class="spacer"></span>
@@ -566,6 +597,6 @@
 
 <script src="/ds/nudges.js"></script>
 <script src="/ds/shell.js"></script>
-<script src="/static/app.js?v=1.1.3"></script>
+<script src="/static/app.js?v=1.1.4"></script>
 </body>
 </html>

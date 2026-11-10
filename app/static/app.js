@@ -973,6 +973,7 @@
         const [path, query] = (location.hash.replace("#/", "") || "standards").split("?");
         const wanted = path || "standards";
         const view = state.key && state.me ? (VIEWS[wanted] ? wanted : "standards") : "connect";
+        if (view !== "admin") clearCreatedUser();
         state.view = view;
         if (view === "changes" && query !== undefined) {
             const params = new URLSearchParams(query);
@@ -1001,6 +1002,7 @@
                 .forEach((b) => { b.hidden = !admin; });
             $("#schedule-form").hidden = !admin;
             $("#src-add-card").hidden = !admin;
+            $("#admin-users").hidden = !admin;
             if (admin) {
                 api("/api/sources/bodies").then((bodies) => {
                     $("#src-body").innerHTML = bodies.map((b) =>
@@ -1138,6 +1140,54 @@
             loadSubscriptions();
         } catch (err) { toastError(err); }
     };
+
+    function clearCreatedUser() {
+        $("#user-created-key").value = "";
+        $("#user-created-email").textContent = "";
+        $("#user-created").hidden = true;
+    }
+
+    $("#user-add").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (state.me?.role !== "admin") return;
+        const button = $("#btn-user-add");
+        if (button.disabled) return;
+        if (!$("#user-created").hidden) {
+            showToast("Dismiss the current API key before creating another user", { type: "warn" });
+            return;
+        }
+        const fullName = $("#user-name").value.trim();
+        const email = $("#user-email").value.trim();
+        if (!fullName || !email) return;
+        button.disabled = true;
+        try {
+            const user = await api("/api/users", {
+                method: "POST",
+                body: JSON.stringify({ full_name: fullName, email, role: $("#user-role").value }),
+            });
+            $("#user-add").reset();
+            if (state.view === "admin" && state.me?.role === "admin") {
+                $("#user-created-email").textContent = `${user.full_name || user.email} (${user.email})`;
+                $("#user-created-key").value = user.api_key;
+                $("#user-created").hidden = false;
+            }
+            showToast(`Created ${esc(user.email)}`, { type: "success" });
+        } catch (error) { toastError(error); }
+        finally { button.disabled = false; }
+    });
+    $("#btn-user-copy").onclick = async () => {
+        const input = $("#user-created-key");
+        if (!input.value) return;
+        try {
+            await navigator.clipboard.writeText(input.value);
+            showToast("API key copied", { type: "success" });
+        } catch (_) {
+            input.focus();
+            input.select();
+            showToast("Clipboard unavailable; the key is selected", { type: "warn" });
+        }
+    };
+    $("#btn-user-dismiss").onclick = clearCreatedUser;
 
     const showJson = (path) => async () => {
         $("#admin-out").textContent = "Loading…";
