@@ -1147,8 +1147,17 @@
 
     let adminUsers = [];
     let adminUsersSeq = 0;
+    let userKeySeq = 0;
+
+    function clearEditedKey() {
+        userKeySeq += 1;
+        $("#user-edit-key").value = "";
+        $("#user-key-panel").hidden = true;
+        $("#user-key-confirm").hidden = true;
+    }
 
     function clearUserEditor() {
+        clearEditedKey();
         adminUsersSeq += 1;
         adminUsers = [];
         $("#user-edit-select").innerHTML = '<option value="">Select a user</option>';
@@ -1158,6 +1167,7 @@
     }
 
     function selectUserForEdit() {
+        clearEditedKey();
         const user = adminUsers.find((item) => String(item.id) === $("#user-edit-select").value);
         $("#user-edit").hidden = !user;
         if (!user) return;
@@ -1172,6 +1182,7 @@
 
     async function loadAdminUsers({ selectedId = "" } = {}) {
         if (state.me?.role !== "admin") { clearUserEditor(); return; }
+        clearEditedKey();
         const sequence = ++adminUsersSeq;
         const key = state.key;
         const select = $("#user-edit-select");
@@ -1199,6 +1210,7 @@
     $("#user-edit-select").onchange = selectUserForEdit;
     $("#btn-users-refresh").onclick = () => loadAdminUsers();
     $("#btn-user-cancel").onclick = () => {
+        clearEditedKey();
         $("#user-edit-select").value = "";
         $("#user-edit").reset();
         $("#user-edit").hidden = true;
@@ -1235,6 +1247,42 @@
         }
     });
 
+    async function manageUserKey(regenerate) {
+        const userId = $("#user-edit-select").value;
+        if (state.me?.role !== "admin" || !userId || $("#btn-user-save").disabled) return;
+        clearEditedKey();
+        const sequence = userKeySeq;
+        const key = state.key;
+        const controls = $$("#user-edit-select, #btn-users-refresh, #btn-user-save, #btn-user-cancel, #btn-user-key-view, #btn-user-key-regenerate");
+        controls.forEach((control) => { control.disabled = true; });
+        try {
+            const user = await api(`/api/users/${encodeURIComponent(userId)}/${regenerate ? "rotate-key" : "api-key"}`, {
+                method: regenerate ? "POST" : "GET", cache: "no-store",
+            });
+            if (key !== state.key || state.me?.role !== "admin") return;
+            if (regenerate && user.id === state.me.id) {
+                state.key = user.api_key;
+                localStorage.setItem("sumKey", state.key);
+            }
+            if (sequence !== userKeySeq || state.view !== "admin" || $("#user-edit-select").value !== userId) return;
+            $("#user-edit-key").value = user.api_key;
+            $("#user-key-panel").hidden = false;
+            if (regenerate) {
+                clearCreatedUser();
+                showToast(`API key regenerated for ${esc(user.email)}`, { type: "success" });
+            }
+        } catch (error) {
+            if (sequence === userKeySeq && key === state.key) toastError(error);
+        } finally { controls.forEach((control) => { control.disabled = false; }); }
+    }
+
+    $("#btn-user-key-view").onclick = () => manageUserKey(false);
+    $("#btn-user-key-regenerate").onclick = () => { $("#user-key-confirm").hidden = false; };
+    $("#btn-user-key-confirm").onclick = () => manageUserKey(true);
+    $("#btn-user-key-cancel").onclick = () => { $("#user-key-confirm").hidden = true; };
+    $("#btn-user-key-hide").onclick = clearEditedKey;
+    $("#btn-user-key-copy").onclick = () => copyUserKey($("#user-edit-key"));
+
     function clearCreatedUser() {
         $("#user-created-key").value = "";
         $("#user-created-email").textContent = "";
@@ -1270,8 +1318,7 @@
         } catch (error) { toastError(error); }
         finally { button.disabled = false; }
     });
-    $("#btn-user-copy").onclick = async () => {
-        const input = $("#user-created-key");
+    async function copyUserKey(input) {
         if (!input.value) return;
         try {
             await navigator.clipboard.writeText(input.value);
@@ -1281,7 +1328,8 @@
             input.select();
             showToast("Clipboard unavailable; the key is selected", { type: "warn" });
         }
-    };
+    }
+    $("#btn-user-copy").onclick = () => copyUserKey($("#user-created-key"));
     $("#btn-user-dismiss").onclick = clearCreatedUser;
 
     const showJson = (path) => async () => {

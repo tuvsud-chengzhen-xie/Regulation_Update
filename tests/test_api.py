@@ -109,6 +109,46 @@ def test_admin_can_edit_and_reactivate_users_without_changing_keys(client):
     assert me.json()["role"] == "user"
 
 
+def test_admin_can_view_and_rotate_user_keys(client):
+    created = client.post(
+        "/api/users", headers=ADMIN,
+        json={"email": "key-management@example.com", "full_name": "Key test"},
+    ).json()
+    path = f"/api/users/{created['id']}"
+    old_headers = {"X-API-Key": created["api_key"]}
+    viewed = client.get(f"{path}/api-key", headers=ADMIN)
+    assert viewed.status_code == 200
+    assert viewed.json()["api_key"] == created["api_key"]
+    assert viewed.headers["cache-control"] == "no-store"
+    assert client.get(f"{path}/api-key").status_code == 401
+    assert client.get(f"{path}/api-key", headers=old_headers).status_code == 403
+    assert client.post(f"{path}/rotate-key", headers=old_headers).status_code == 403
+    assert client.get("/api/users/999999/api-key", headers=ADMIN).status_code == 404
+    assert all("api_key" not in user for user in client.get("/api/users", headers=ADMIN).json())
+    rotated = client.post(f"{path}/rotate-key", headers=ADMIN)
+    assert rotated.status_code == 200
+    assert rotated.headers["cache-control"] == "no-store"
+    new_key = rotated.json()["api_key"]
+    assert new_key and new_key != created["api_key"]
+    assert client.get("/api/users/me", headers=old_headers).status_code == 401
+    assert client.get("/api/users/me", headers={"X-API-Key": new_key}).status_code == 200
+    assert client.get(f"{path}/api-key", headers=ADMIN).json()["api_key"] == new_key
+
+
+def test_admin_can_rotate_own_key(client):
+    created = client.post(
+        "/api/users", headers=ADMIN,
+        json={"email": "rotating-admin@example.com", "role": "admin"},
+    ).json()
+    old_headers = {"X-API-Key": created["api_key"]}
+    rotated = client.post(f"/api/users/{created['id']}/rotate-key", headers=old_headers)
+    assert rotated.status_code == 200
+    assert client.get("/api/users/me", headers=old_headers).status_code == 401
+    assert client.get(
+        "/api/users", headers={"X-API-Key": rotated.json()["api_key"]},
+    ).status_code == 200
+
+
 def test_subscription_alerting_end_to_end(client, payloads):
     created = client.post(
         "/api/users",

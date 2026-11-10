@@ -555,6 +555,29 @@
                 </select>
             </label>
             <label class="check"><input id="user-edit-active" type="checkbox"> Active</label>
+            <div>
+                <span class="form-label">API key</span>
+                <div class="row">
+                    <button class="btn btn-sm" id="btn-user-key-view" type="button">View key</button>
+                    <button class="btn btn-sm" id="btn-user-key-regenerate" type="button">Regenerate key</button>
+                </div>
+                <div id="user-key-confirm" style="margin-top:var(--space-2)" hidden>
+                    <p role="alert">Regenerate this user's API key? The old key will stop working immediately.</p>
+                    <div class="row">
+                        <button class="btn btn-sm" id="btn-user-key-confirm" type="button">Confirm regeneration</button>
+                        <button class="btn btn-sm btn-ghost" id="btn-user-key-cancel" type="button">Cancel</button>
+                    </div>
+                </div>
+                <div id="user-key-panel" style="margin-top:var(--space-2)" hidden>
+                    <label class="form-label" for="user-edit-key">Current API key</label>
+                    <input id="user-edit-key" class="field" readonly autocomplete="off" spellcheck="false"
+                           style="box-sizing:border-box;width:100%;min-width:0">
+                    <div class="row" style="margin-top:var(--space-2)">
+                        <button class="btn btn-sm" id="btn-user-key-copy" type="button">Copy key</button>
+                        <button class="btn btn-sm btn-ghost" id="btn-user-key-hide" type="button">Hide key</button>
+                    </div>
+                </div>
+            </div>
             <div class="row">
                 <button class="btn btn-primary" id="btn-user-save" type="submit">Save changes</button>
                 <button class="btn btn-ghost" id="btn-user-cancel" type="button">Cancel</button>
@@ -630,6 +653,6 @@
 
 <script src="/ds/nudges.js"></script>
 <script src="/ds/shell.js"></script>
-<script src="/static/app.js?v=1.1.5"></script>
+<script src="/static/app.js?v=1.1.6"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from sqlalchemy import select
 
 from app.models import User
@@ -59,14 +59,26 @@ def update_user(user_id: int, payload: UserUpdate, db: DbSession, admin: AdminUs
     return user
 
 
+@router.get("/{user_id}/api-key", response_model=UserWithKey)
+def get_api_key(user_id: int, db: DbSession, admin: AdminUser, response: Response) -> User:
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    return user
+
+
 @router.post("/{user_id}/rotate-key", response_model=UserWithKey)
-def rotate_key(user_id: int, db: DbSession, admin: AdminUser) -> User:
+def rotate_key(user_id: int, db: DbSession, admin: AdminUser, response: Response) -> User:
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     user.api_key = generate_api_key()
     db.commit()
     db.refresh(user)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
     return user
 
 
